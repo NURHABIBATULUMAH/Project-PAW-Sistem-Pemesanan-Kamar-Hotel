@@ -64,3 +64,32 @@ Aplikasi berbasis web untuk melakukan pemesanan kamar hotel secara online. Siste
     │   ├── rooms/
     └── uploads/
         ├── payment.png
+```
+
+## Tim Pengembang
+
+<table>
+  <tr>
+    <td align="center">
+      <img src="assets/images/adib.png" width="120" style="border-radius:50%;"><br>
+      <a href="https://github.com/adibilazwar">Adib</a>
+    </td>
+    <td align="center">
+      <img src="assets/images/habiba.png" width="120" style="border-radius:50%;"><br>
+      <a href="https://github.com/NURHABIBATULUMAH">Habiba</a>
+    </td>
+    <td align="center">
+      <img src="assets/images/firda.png" width="120" style="border-radius:50%;"><br>
+      <a href="https://github.com/firdanzula">Firda</a>
+    </td>
+    <td align="center">
+      <img src="assets/images/amin.png" width="120" style="border-radius:50%;"><br>
+      <a href="https://github.com/fathulamin987">Amin</a>
+    </td>
+    <td align="center">
+      <img src="assets/images/dimas.png" width="120" style="border-radius:50%;"><br>
+      <a href="https://github.com/Fahdimas">Dimas</a>
+    </td>
+  </tr>
+</table>
+
