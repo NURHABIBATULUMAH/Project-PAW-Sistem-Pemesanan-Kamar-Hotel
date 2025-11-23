@@ -26,10 +26,13 @@ Aplikasi berbasis web untuk melakukan pemesanan kamar hotel secara online. Siste
 ├── leave_review.php
 │
 ├── admin/
+│   ├── admin_manage_fasilitas.php
 │   ├── index.php
-│   ├── manage_rooms.php
-│   ├── manage_room_types.php
 │   ├── manage_bookings.php
+│   ├── manage_fasilitas.php
+│   ├── manage_reviews.php
+│   ├── manage_room_types.php
+│   ├── manage_rooms.php
 │   ├── manage_users.php
 │
 ├── config/
@@ -44,6 +47,7 @@ Aplikasi berbasis web untuk melakukan pemesanan kamar hotel secara online. Siste
 │   ├── action_register.php
 │   ├── action_booking.php
 │   ├── action_submit_review.php
+│   ├── action_submit_payment_details.php
 │   ├── action_update_profile.php
 │   ├── action_upload_bukti.php
 │   ├── action_update_profile_photo.php
