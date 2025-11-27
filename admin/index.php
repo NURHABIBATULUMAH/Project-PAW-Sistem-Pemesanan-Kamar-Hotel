@@ -20,7 +20,7 @@ include '../includes/admin_header.php';
         <div class="stat-card">
             <h3>Total Kamar (Fisik)</h3>
             <p><?php echo $total_rooms; ?></p>
-        </div>
+        </div> 
         <div class="stat-card">
             <h3>Pesanan Pending</h3>
             <p><?php echo $pending_bookings; ?></p>
@@ -38,7 +38,7 @@ include '../includes/admin_header.php';
     <br>
     <p>Gunakan navigasi di sebelah kiri untuk mengelola aspek-aspek situs Anda:</p>
     <ul>
-        <li><b>Kelola Pesanan:</b> Konfirmasi, batalkan, atau tandai pesanan sebagai lunas.</li>
+        <li><b>Kelola Pesanan:</b> Konfirmasi, batalkan, atau tandai pqesanan sebagai lunas.</li>
         <li><b>Kelola Tipe Kamar:</b> Mengatur harga (weekday/weekend) dan foto tipe kamar.</li>
         <li><b>Kelola Kamar:</b> Menambah atau menghapus kamar fisik (stok kamar).</li>
         <li><b>Kelola Fasilitas:</b> Mengatur harga 'Breakfast' atau 'Room Service'.</li>
