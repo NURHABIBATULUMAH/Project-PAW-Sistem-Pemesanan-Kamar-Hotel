@@ -2,6 +2,27 @@
 
 include '../includes/admin_header.php'; 
 
+
+try {
+    // Ambil Total Pelanggan
+    $result_users = $mysqli->query("SELECT COUNT(*) FROM Users WHERE role = 'customer'");
+    $total_users = $result_users->fetch_row()[0]; 
+
+    // Ambil Total Kamar Fisik
+    $result_rooms = $mysqli->query("SELECT COUNT(*) FROM Rooms");
+    $total_rooms = $result_rooms->fetch_row()[0];
+
+    // Ambil Pesanan Pending
+    $result_pending = $mysqli->query("SELECT COUNT(*) FROM Payments WHERE status_bayar = 'Pending'");
+    $pending_bookings = $result_pending->fetch_row()[0];
+
+    // Ambil Total Pendapatan
+    $result_revenue = $mysqli->query("SELECT SUM(jumlah_bayar) FROM Payments WHERE status_bayar = 'Success'");
+    $total_revenue = $result_revenue->fetch_row()[0];
+
+} catch (Exception $e) { // Tangkap 'Exception' umum
+    $error = $e->getMessage();
+}
 ?>
 
 <div class="content-header">
