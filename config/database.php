@@ -1,6 +1,6 @@
 <?php
 
-define('BASE_URL', 'http://localhost/pawproyek/'); 
+define('BASE_URL', 'http://localhost/proyekpaw/'); 
 
 $host = 'localhost'; 
 $db_name = 'db_hotel';
