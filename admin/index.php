@@ -2,25 +2,24 @@
 
 include '../includes/admin_header.php'; 
 
-
 try {
     // Ambil Total Pelanggan
-    $result_users = $mysqli->query("SELECT COUNT(*) FROM Users WHERE role = 'customer'");
-    $total_users = $result_users->fetch_row()[0]; 
+    $result_users = $mysqli->query("SELECT COUNT(*) FROM users WHERE role = 'customer'");
+    $total_users = $result_users->fetch_row()[0];
 
     // Ambil Total Kamar Fisik
-    $result_rooms = $mysqli->query("SELECT COUNT(*) FROM Rooms");
+    $result_rooms = $mysqli->query("SELECT COUNT(*) FROM rooms");
     $total_rooms = $result_rooms->fetch_row()[0];
 
     // Ambil Pesanan Pending
-    $result_pending = $mysqli->query("SELECT COUNT(*) FROM Payments WHERE status_bayar = 'Pending'");
+    $result_pending = $mysqli->query("SELECT COUNT(*) FROM payments WHERE status_bayar = 'Pending'");
     $pending_bookings = $result_pending->fetch_row()[0];
 
     // Ambil Total Pendapatan
-    $result_revenue = $mysqli->query("SELECT SUM(jumlah_bayar) FROM Payments WHERE status_bayar = 'Success'");
+    $result_revenue = $mysqli->query("SELECT SUM(jumlah_bayar) FROM payments WHERE status_bayar = 'Success'");
     $total_revenue = $result_revenue->fetch_row()[0];
 
-} catch (Exception $e) { // Tangkap 'Exception' umum
+} catch (Exception $e) { 
     $error = $e->getMessage();
 }
 ?>
@@ -41,7 +40,7 @@ try {
         <div class="stat-card">
             <h3>Total Kamar (Fisik)</h3>
             <p><?php echo $total_rooms; ?></p>
-        </div> 
+        </div>
         <div class="stat-card">
             <h3>Pesanan Pending</h3>
             <p><?php echo $pending_bookings; ?></p>
@@ -53,13 +52,13 @@ try {
     </div>
 <?php endif; ?>
 <br><br>
- 
+
 <div class="admin-card">
     <h2>Akses Cepat</h2>
     <br>
     <p>Gunakan navigasi di sebelah kiri untuk mengelola aspek-aspek situs Anda:</p>
     <ul>
-        <li><b>Kelola Pesanan:</b> Konfirmasi, batalkan, atau tandai pqesanan sebagai lunas.</li>
+        <li><b>Kelola Pesanan:</b> Konfirmasi, batalkan, atau tandai pesanan sebagai lunas.</li>
         <li><b>Kelola Tipe Kamar:</b> Mengatur harga (weekday/weekend) dan foto tipe kamar.</li>
         <li><b>Kelola Kamar:</b> Menambah atau menghapus kamar fisik (stok kamar).</li>
         <li><b>Kelola Fasilitas:</b> Mengatur harga 'Breakfast' atau 'Room Service'.</li>
