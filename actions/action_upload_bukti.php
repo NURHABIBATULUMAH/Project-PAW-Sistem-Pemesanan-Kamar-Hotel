@@ -1,9 +1,6 @@
 <?php
-// /actions/action_upload_bukti.php
-// VERSI ALAMAT MUTLAK
 
 session_start();
-// Gunakan ../ karena file ini ada di folder actions
 include '../config/database.php'; 
 include '../core/auth.php';
 
@@ -36,8 +33,6 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         exit;
     }
     
-    // ... (Validasi file extension & size sama seperti sebelumnya) ...
-    // Biar cepat, langsung ke bagian inti:
 
     $file_extension = strtolower(pathinfo($file_to_upload["name"], PATHINFO_EXTENSION));
     $new_file_name = "payment_" . $payment_id . "_" . time() . "." . $file_extension;
