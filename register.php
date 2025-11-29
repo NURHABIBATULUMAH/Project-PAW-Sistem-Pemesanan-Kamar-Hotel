@@ -1,7 +1,6 @@
 <?php
 include 'includes/header.php';
 
-// pengecekan login
 if (is_logged_in()) {
     header('Location: profile.php');
     exit;
