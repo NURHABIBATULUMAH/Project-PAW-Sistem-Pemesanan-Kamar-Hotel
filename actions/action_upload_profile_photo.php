@@ -6,20 +6,19 @@ include '../core/auth.php';
 require_login();
 
 $user_id = $_SESSION['user_id'];
-$target_dir = "../assets/images/profile/"; // Folder penyimpanan
+$target_dir = "../assets/images/profile/";
 
 if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_FILES["profile_file"])) {
     
     $file = $_FILES["profile_file"];
     
-    // 1. Validasi dasar
     if ($file['error'] != UPLOAD_ERR_OK) {
         $_SESSION['error_message'] = "Terjadi error saat upload.";
         header('Location: ../profile.php');
         exit;
     }
     
-    // 2. Cek tipe dan ukuran
+    // Cek tipe dan ukuran
     $file_extension = strtolower(pathinfo($file["name"], PATHINFO_EXTENSION));
     $allowed_types = ['jpg', 'png', 'jpeg'];
     
@@ -29,14 +28,14 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_FILES["profile_file"])) {
         exit;
     }
 
-    // 3. Tentukan nama file unik
+    // Tentukan nama file unik
     $new_file_name = "user_" . $user_id . "_" . time() . "." . $file_extension;
     $target_file_path = $target_dir . $new_file_name;
 
-    // 4. Pindahkan file
+    // memindahkan file
     if (move_uploaded_file($file["tmp_name"], $target_file_path)) {
         
-        // 5. Update nama foto di database (Konversi ke MySQLi)
+        // Update nama foto di database (Konversi ke MySQLi)
         try {
             // Ambil nama foto lama untuk dihapus (Query 1 - MySQLi)
             $sql_old = "SELECT profile_photo FROM Users WHERE user_id = ?";
@@ -62,7 +61,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_FILES["profile_file"])) {
             header('Location: ../profile.php');
             exit;
 
-        } catch (Exception $e) { // Tangkap 'Exception' umum
+        } catch (Exception $e) {
             $_SESSION['error_message'] = "Gagal menyimpan data ke database: " . $e->getMessage();
             header('Location: ../profile.php');
             exit;
