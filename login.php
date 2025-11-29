@@ -1,8 +1,4 @@
 <?php
-// /login.php
-// VERSI DENGAN FIX DOUBLE INCLUDE
-
-// HANYA muat header.php, dia akan memuat config dan auth
 include 'includes/header.php';
 
 // Cek jika user sudah login
