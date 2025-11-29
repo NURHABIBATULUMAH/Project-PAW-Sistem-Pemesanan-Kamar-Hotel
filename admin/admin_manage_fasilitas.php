@@ -1,5 +1,4 @@
 <?php
-// /admin/manage_fasilitas.php
 
 include '../includes/admin_header.php'; 
 

@@ -1,5 +1,4 @@
 <?php
-// /admin/manage_bookings.php
 
 include '../config/database.php';
 include '../core/auth.php';
