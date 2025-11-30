@@ -1,6 +1,4 @@
 <?php
-// /booking_history.php
-// VERSI: TAMPILAN LAMA (INLINE FORM) + FITUR GROUP BOOKING
 
 ini_set('display_errors', 1);
 error_reporting(E_ALL);
@@ -11,11 +9,7 @@ include 'core/auth.php';
 require_login();
 $user_id = $_SESSION['user_id'];
 
-// === QUERY KHUSUS: GROUP BOOKING ===
-// Kita tetap harus pakai GROUP BY agar kalau pesan 2 kamar, barisnya cuma 1 (Gabungan)
-// Tapi tampilannya kita bikin mirip kode lama kamu.
 try {
-    // Menghilangkan Warning dan Memastikan Data Tergabung
     $sql = "SELECT 
                 B.booking_code,
                 B.tanggal_check_in,
@@ -24,11 +18,9 @@ try {
                 B.created_at, 
                 RT.nama_tipe,
                 
-                -- DATA GABUNGAN (AGGREGASI)
                 GROUP_CONCAT(R.nomor_kamar ORDER BY R.nomor_kamar ASC SEPARATOR ', ') AS daftar_nomor_kamar,
-                COUNT(B.room_id) AS total_kamar, /* <-- FIX NAMA ALIAS agar cocok dengan warning */
+                COUNT(B.room_id) AS total_kamar,
                 
-                -- DATA PEMBAYARAN (Diambil dari tabel Payments)
                 P.status_bayar,
                 P.bukti_bayar,
                 P.metode_bayar,
@@ -48,11 +40,6 @@ try {
     $result = $stmt->get_result();
     $riwayat_bookings = $result->fetch_all(MYSQLI_ASSOC);
     
-    // ...
-    
-    // Kita perlu sedikit ubah pemetaan agar HTML kamu tidak error
-    // Fasilitas terpaksa dihilangkan karena query ini sekarang grouped (perlu subquery kompleks lagi)
-
 } catch (Exception $e) {
     echo "<div class='container'><p class='alert alert-error'>Error Database: " . $e->getMessage() . "</p></div>";
     $riwayat_bookings = [];
@@ -217,10 +204,8 @@ const paymentDetails = {
     'Gopay': '<p style="font-size:11px">Gopay: <strong style="color:green">08123456789</strong></p>',
 };
 
-// Fungsi JS untuk menampilkan rekening berdasarkan ID Unik Booking Code
 function showPaymentInstruction(selectElement, bookingCode) {
     const selectedMethod = selectElement.value;
-    // Kita cari elemen div berdasarkan booking_code
     const displayContainer = document.getElementById('instruction-display-' + bookingCode);
 
     if (selectedMethod && paymentDetails[selectedMethod]) {

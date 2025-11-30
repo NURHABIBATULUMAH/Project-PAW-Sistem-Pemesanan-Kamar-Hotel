@@ -1,222 +1,207 @@
 <?php
 
-ini_set('display_errors', 1);
-error_reporting(E_ALL);
+include '../config/database.php';
+include '../core/auth.php';
+require_admin();
 
-include '../config/database.php'; 
-include '../core/auth.php'; 
-
-require_login();
-$user_id = $_SESSION['user_id'];
+$message = '';
+$message_type = '';
 
 try {
-    $sql = "SELECT 
-                B.booking_code,
-                B.tanggal_check_in,
-                B.tanggal_check_out,
-                B.status_booking,
-                B.created_at, 
-                RT.nama_tipe,
-                
-                -- DATA GABUNGAN (AGGREGASI)
-                GROUP_CONCAT(R.nomor_kamar ORDER BY R.nomor_kamar ASC SEPARATOR ', ') AS daftar_nomor_kamar,
-                COUNT(B.room_id) AS total_kamar, 
-                
-                -- DATA PEMBAYARAN (Diambil dari tabel Payments)
-                P.status_bayar,
-                P.bukti_bayar,
-                P.metode_bayar,
-                P.jumlah_bayar AS total_bayar_group
-            FROM bookings B
-            JOIN room_types RT ON B.room_type_id = RT.room_type_id
-            LEFT JOIN rooms R ON B.room_id = R.room_id
-            LEFT JOIN payments P ON B.booking_code = P.booking_code 
-            
-            WHERE B.user_id = ?
-            GROUP BY B.booking_code 
-            ORDER BY B.created_at DESC";
+    if (isset($_GET['action']) && isset($_GET['id'])) {
+        $booking_code = $_GET['id']; 
+        $action = $_GET['action'];
+        $sql = null;
+        
+        if ($action == 'confirm') {
+            $sql = "UPDATE bookings SET status_booking = 'Confirmed' WHERE booking_code = ?";
+            $message = "Booking berhasil dikonfirmasi.";
+            $message_type = 'success';
+        } elseif ($action == 'cancel') {
+            $sql = "UPDATE bookings SET status_booking = 'Cancelled' WHERE booking_code = ?";
+            $message = "Booking berhasil dibatalkan.";
+            $message_type = 'success';
+        } elseif ($action == 'checkout') {
+            $sql = "UPDATE bookings SET status_booking = 'Completed' WHERE booking_code = ?";
+            $message = "Tamu berhasil Check-Out. Pesanan Selesai.";
+            $message_type = 'success';
+        } 
+        
+        elseif ($action == 'pay_success') {
+            $sql = "UPDATE payments SET status_bayar = 'Success' WHERE booking_code = ?";
+            $message = "Pembayaran ditandai Lunas.";
+            $message_type = 'success';
+        }
 
-    $stmt = $mysqli->prepare($sql);
-    $stmt->bind_param("i", $user_id);
-    $stmt->execute();
-    $result = $stmt->get_result();
-    $riwayat_bookings = $result->fetch_all(MYSQLI_ASSOC);
+        if (isset($sql)) {
+            $stmt = $mysqli->prepare($sql);
+            $stmt->bind_param("s", $booking_code); 
+            $stmt->execute();
+        }
+    }
+
+    $sql_select = "SELECT 
+                        B.booking_code,
+                        B.tanggal_check_in,
+                        B.tanggal_check_out,
+                        B.status_booking,
+                        B.created_at,
+                        U.nama AS nama_pelanggan,
+                        RT.nama_tipe,
+                        
+                        -- Aggregasi data kamar dan harga
+                        GROUP_CONCAT(R.nomor_kamar ORDER BY R.nomor_kamar ASC SEPARATOR ', ') AS daftar_nomor_kamar,
+                        COUNT(B.room_id) AS jumlah_kamar_group,
+                        
+                        -- Data pembayaran (LEFT JOIN ke payments via booking_code)
+                        P.status_bayar,
+                        P.bukti_bayar,
+                        P.jumlah_bayar AS total_bayar_group
+                    FROM bookings B
+                    JOIN users U ON B.user_id = U.user_id
+                    JOIN room_types RT ON B.room_type_id = RT.room_type_id
+                    LEFT JOIN rooms R ON B.room_id = R.room_id
+                    LEFT JOIN payments P ON B.booking_code = P.booking_code /* KUNCI FIX */
+                    
+                    GROUP BY B.booking_code, U.nama, RT.nama_tipe, P.status_bayar, P.bukti_bayar 
+                    ORDER BY B.created_at DESC";
+                    
+    $result_select = $mysqli->query($sql_select);
+    $all_bookings = $result_select->fetch_all(MYSQLI_ASSOC);
 
 } catch (Exception $e) {
-    echo "<div class='container'><p class='alert alert-error'>Error Database: " . $e->getMessage() . "</p></div>";
-    $riwayat_bookings = [];
+    $message = "Error database: " . $e->getMessage();
+    $message_type = 'error';
 }
-include '../includes/header.php';
+
+include '../includes/admin_header.php';
 ?>
 
-<div class="container profile-page" style="margin-top: 30px; margin-bottom: 50px;">
-    <h2>Riwayat Pemesanan Anda</h2>
-    
-    <?php 
-    if (isset($_SESSION['success_message'])) {
-        echo '<div class="alert alert-success">'.$_SESSION['success_message'].'</div>';
-        unset($_SESSION['success_message']);
-    }
-    if (isset($_SESSION['error_message'])) {
-        echo '<div class="alert alert-error">'.$_SESSION['error_message'].'</div>';
-        unset($_SESSION['error_message']);
-    }
-    ?>
+<div class="admin-layout">
 
-    <div class="booking-history-list">
-        <?php if (empty($riwayat_bookings)): ?>
-            <div style="text-align: center; padding: 40px; color: #666;">
-                <p>Anda belum memiliki riwayat pemesanan.</p>
-                <a href="rooms.php" class="btn-primary" style="display:inline-block; width:auto; margin-top:10px;">Pesan Kamar Sekarang</a>
-            </div>
-        <?php else: ?>
+    <main class="admin-content">
+        <div class="content-header">
+            <h1>Kelola Pesanan Pelanggan</h1>
+        </div>
+
+        <?php if ($message): ?>
+            <div class="alert alert-<?php echo $message_type; ?>"><?php echo $message; ?></div>
+        <?php endif; ?>
+
+        <div class="admin-card">
+            <h3>Daftar Seluruh Pesanan</h3>
             <div style="overflow-x: auto;">
-                <table class="history-table" style="width: 100%; border-collapse: collapse; font-size: 13px;">
-                    <thead style="background: #f8f9fa; border-bottom: 2px solid #ddd;">
+                <table class="admin-table">
+                    <thead>
                         <tr>
-                            <th style="padding: 10px;">Tgl. Pesan</th>
-                            <th style="padding: 10px;">Kode & Tipe</th>
-                            <th style="padding: 10px; text-align: center;">No. Kamar</th>
-                            <th style="padding: 10px;">Tgl. Menginap</th>
-                            <th style="padding: 10px;">Total Bayar</th>
-                            <th style="padding: 10px;">Status Booking</th>
-                            <th style="padding: 10px; min-width: 250px;">Status Bayar & Aksi</th>
+                            <th>Kode Booking</th>
+                            <th>Pelanggan</th>
+                            <th>Tipe Kamar & Total</th>
+                            
+                            <th>No. Kamar</th>
+                            
+                            <th>Tanggal Pesan</th> 
+                            <th>Check in</th> 
+                            <th>Check Out</th>
+                            <th>Total</th>
+                            <th>Status</th>
+                            <th>Bayar</th>
+                            <th>Aksi</th>
                         </tr>
                     </thead>
                     <tbody>
-                        <?php foreach ($riwayat_bookings as $booking): ?>
-                            <tr style="border-bottom: 1px solid #eee;">
-                                <td style="padding: 10px; color: #555;">
-                                    <?php echo date('d M Y', strtotime($booking['created_at'])); ?>
-                                </td>
+                        <?php foreach ($all_bookings as $booking): ?>
+                        <tr>
+                            <td style="font-weight: bold; color: #007bff;"><?php echo $booking['booking_code']; ?></td>
+                            <td><?php echo htmlspecialchars($booking['nama_pelanggan']); ?></td>
+                            <td>
+                                <?php echo htmlspecialchars($booking['nama_tipe']); ?> 
+                                <br>
+                                <small>(<?php echo htmlspecialchars($booking['jumlah_kamar_group']); ?> Kamar)</small>
+                            </td>
+                            
+                            <td style="font-weight: bold; color: #007bff;">
+                                <?php echo htmlspecialchars($booking['daftar_nomor_kamar']); ?>
+                            </td>
+                            
+                            <td>
+                                <?php echo date('d/m/Y H:i', strtotime($booking['created_at'])); ?> 
+                            </td>
+
+                            <td>
+                                <?php echo date('d/m/Y', strtotime($booking['tanggal_check_in'])); ?> 
+                            </td>
+                            <td>
+                                <?php echo date('d/m/Y', strtotime($booking['tanggal_check_out'])); ?>
+                            </td>
+
+                            <td>Rp <?php echo number_format($booking['total_bayar_group'], 0, ',', '.'); ?></td>
+                            
+                            <td>
+                                <?php 
+                                    $status_class = '';
+                                    if($booking['status_booking'] == 'Pending') $status_class = 'text-warning';
+                                    elseif($booking['status_booking'] == 'Confirmed') $status_class = 'text-success';
+                                    elseif($booking['status_booking'] == 'Cancelled') $status_class = 'text-danger';
+                                    elseif($booking['status_booking'] == 'Completed') $status_class = 'text-muted';
+                                ?>
+                                <span class="<?php echo $status_class; ?>" style="font-weight:bold;">
+                                    <?php echo htmlspecialchars($booking['status_booking']); ?>
+                                </span>
+                            </td>
+                            
+                            <td>
+                                <?php if ($booking['status_bayar'] == 'Success'): ?>
+                                    <span style="color: green; font-weight: bold;">LUNAS</span>
+                                <?php else: ?>
+                                    <span style="color: orange;">PENDING</span>
+                                <?php endif; ?>
                                 
-                                <td style="padding: 10px;">
-                                    <span style="font-weight: bold; color: #333;">
-                                        <?php echo htmlspecialchars($booking['nama_tipe']); ?>
-                                    </span>
+                                <?php if (!empty($booking['bukti_bayar'])): ?>
                                     <br>
-                                    <small style="color: #007bff;">#<?php echo $booking['booking_code']; ?></small>
-                                </td>
+                                    <a href="<?php echo BASE_URL . 'assets/uploads/' . htmlspecialchars($booking['bukti_bayar']); ?>" 
+                                       target="_blank" class="view-proof-link">Lihat Bukti</a>
+                                <?php endif; ?>
+                            </td>
 
-                                <td style="padding: 10px; text-align: center; font-weight: bold; color: #007bff;">
-                                    <?php 
-                                        if (!empty($booking['daftar_nomor_kamar'])) {
-                                            echo $booking['daftar_nomor_kamar'];
-                                            echo "<br><small style='color:#666; font-weight:normal;'>(" . $booking['total_kamar'] . " Kamar)</small>";
+                            <td class="action-links">
+                                <?php
+                                $code = $booking['booking_code']; // Menggunakan code sebagai identifier
+                                
+                                if ($booking['status_booking'] == 'Pending') {
+                                ?>
+                                    <a href="manage_bookings.php?action=confirm&id=<?php echo $code; ?>" class="edit-link">Konfirmasi</a><br>
+                                    <a href="manage_bookings.php?action=cancel&id=<?php echo $code; ?>" class="delete-link" onclick="return confirm('Yakin batalkan?');">Batalkan</a>
+                                
+                                <?php
+                                } elseif ($booking['status_booking'] == 'Confirmed') {
+                                    if ($booking['status_bayar'] != 'Success') {
+                                        echo '<a href="manage_bookings.php?action=cancel&id='.$code.'" class="delete-link" style="font-size:12px;" onclick="return confirm(\'Yakin batalkan?\');">Batalkan Pesanan</a><br>';
+                                    }
+                                    if ($booking['status_bayar'] == 'Pending') {
+                                        if (!empty($booking['bukti_bayar'])) {
+                                            echo '<a href="manage_bookings.php?action=pay_success&id='.$code.'" class="edit-link" style="color:green;">Tandai Lunas</a>';
                                         } else {
-                                            echo "-";
+                                            echo '<span class="disabled-text">Menunggu Bukti</span>';
                                         }
-                                    ?>
-                                </td>
-                                
-                                <td style="padding: 10px;">
-                                    <span style="color: #28a745;">In:</span> <?php echo date('d/m/y', strtotime($booking['tanggal_check_in'])); ?> <br>
-                                    <span style="color: #dc3545;">Out:</span> <?php echo date('d/m/y', strtotime($booking['tanggal_check_out'])); ?>
-                                </td>
-
-                                <td style="padding: 10px; font-weight: bold;">
-                                   Rp <?php echo number_format((float)($booking['total_bayar_group'] ?? 0), 0, ',', '.'); ?>
-                                </td>
-                                
-                                <td style="padding: 10px;">
-                                    <?php 
-                                        $sb = $booking['status_booking'];
-                                        $color = 'orange';
-                                        if($sb=='Confirmed') $color='green';
-                                        if($sb=='Cancelled') $color='red';
-                                        if($sb=='Completed') $color='blue';
-                                    ?>
-                                    <span style="color:<?php echo $color; ?>; font-weight:bold;">
-                                        <?php echo htmlspecialchars($sb); ?>
-                                    </span>
-                                </td>
-
-                                <td style="padding: 10px;">
-                                    
-                                    <?php if ($booking['status_bayar'] == 'Pending' && $booking['status_booking'] == 'Confirmed'): ?>
-                                        
-                                        <?php if (!empty($booking['bukti_bayar'])): ?>
-                                            <div class="payment-instruction-box alert-success" style="background-color: #e6fffa; border: 1px solid #b2f5ea; padding: 10px; border-radius: 5px;">
-                                                <p style="font-size: 11px; margin:0;">Metode: <strong><?php echo htmlspecialchars($booking['metode_bayar']); ?></strong></p>
-                                                <p style="font-size: 11px; margin:0;">Bukti terkirim. Tunggu Admin.</p>
-                                            </div>
-                                        
-                                        <?php else: ?>
-                                            <div class="payment-instruction-box alert-yellow" style="background-color: #fff3e0; border: 1px solid #f0ad4e; padding: 10px; border-radius: 5px;">
-                                                <p style="font-weight: bold; margin-bottom: 5px; font-size:12px;">Bayar Sekarang:</p>
-
-                                                <div id="instruction-display-<?php echo $booking['booking_code']; ?>" style="background: #fff; padding: 5px; border: 1px dashed #ccc; margin-bottom: 5px; font-size: 11px;">
-                                                    <p>Pilih bank untuk lihat rekening.</p>
-                                                </div>
-
-                                                <form action="actions/action_upload_bukti.php" method="POST" enctype="multipart/form-data">
-                                                    
-                                                    <input type="hidden" name="booking_code" value="<?php echo $booking['booking_code']; ?>">
-                                                    
-                                                    <div class="form-group-inline" style="margin-bottom: 5px;">
-                                                        <select name="bank_name" 
-                                                                onchange="showPaymentInstruction(this, '<?php echo $booking['booking_code']; ?>')"
-                                                                required 
-                                                                style="width: 100%; padding: 5px; font-size: 12px; border:1px solid #ddd;">
-                                                            <option value="">-- Metode Bayar --</option>
-                                                            <option value="BCA">BCA (VA)</option>
-                                                            <option value="Mandiri">Mandiri</option>
-                                                            <option value="BNI">BNI</option>
-                                                            <option value="BRI">BRI</option>
-                                                            <option value="QRIS">QRIS (Scan)</option>
-                                                            <option value="OVO">OVO</option>
-                                                            <option value="Gopay">Gopay</option>
-                                                        </select>
-                                                    </div>
-
-                                                    <label class="upload-label" style="font-size:11px; font-weight:bold;">Upload Bukti:</label>
-                                                    <input type="file" name="bukti_bayar" required accept="image/*,.pdf" style="font-size: 11px; width:100%;">
-                                                    
-                                                    <button type="submit" class="btn-upload" style="margin-top:5px; width:100%; padding:5px; background:#28a745; color:white; border:none; cursor:pointer;">Kirim Bukti</button>
-                                                </form>
-                                            </div>
-                                        <?php endif; ?>
-
-                                    <?php elseif ($booking['status_bayar'] == 'Success'): ?>
-                                        <span style="color: green; font-weight:bold;">✔ LUNAS</span>
-                                    <?php elseif ($booking['status_booking'] == 'Cancelled'): ?>
-                                        <span style="color: red;">Dibatalkan</span>
-                                    <?php else: ?>
-                                        <span style="color: orange;"><?php echo $booking['status_bayar']; ?></span>
-                                    <?php endif; ?>
-                                </td>
-                            </tr>
+                                    } else {
+                                        echo '<a href="manage_bookings.php?action=checkout&id='.$code.'" class="edit-link" style="color: darkblue;">Check Out (Selesai)</a>';
+                                    }
+                                } elseif ($booking['status_booking'] == 'Completed') {
+                                    echo '<span style="color:gray;">✔ Selesai</span>';
+                                } elseif ($booking['status_booking'] == 'Cancelled') {
+                                    echo '<span class="disabled-text">- Dibatalkan -</span>';
+                                }
+                                ?>
+                            </td>
+                        </tr>
                         <?php endforeach; ?>
                     </tbody>
                 </table>
             </div>
-        <?php endif; ?>
-    </div>
+        </div>
+    </main>
 </div>
 
-<script>
-const paymentDetails = {
-    'QRIS': '<p style="text-align: center;">Scan QR Code:</p><img src="<?php echo BASE_URL; ?>assets/images/qris.jpg" style="width: 100px; margin: 0 auto; display: block;">',
-    'BCA': '<p style="font-size:11px">BCA: <strong style="color:blue">888001234567</strong><br>A.n Hotel Madura</p>',
-    'Mandiri': '<p style="font-size:11px">Mandiri: <strong style="color:green">1230098765</strong></p>',
-    'BNI': '<p style="font-size:11px">BNI: <strong style="color:red">0887776665</strong></p>',
-    'BRI': '<p style="font-size:11px">BRI: <strong style="color:green">0447776665</strong></p>',
-    'OVO': '<p style="font-size:11px">OVO: <strong style="color:purple">08123456789</strong></p>',
-    'Gopay': '<p style="font-size:11px">Gopay: <strong style="color:green">08123456789</strong></p>',
-};
-
-function showPaymentInstruction(selectElement, bookingCode) {
-    const selectedMethod = selectElement.value;
-    const displayContainer = document.getElementById('instruction-display-' + bookingCode);
-
-    if (selectedMethod && paymentDetails[selectedMethod]) {
-        displayContainer.innerHTML = paymentDetails[selectedMethod];
-    } else {
-        displayContainer.innerHTML = '<p style="font-size:11px;">Pilih metode untuk lihat rekening.</p>';
-    }
-}
-</script>
-
-<?php
-include '../includes/footer.php';
-?>
+</body>
+</html>
