@@ -1,4 +1,6 @@
 <?php
+// /booking_history.php
+// VERSI FINAL: KOLOM REVIEW ADA + REKENING LENGKAP + GROUP BOOKING
 
 ini_set('display_errors', 1);
 error_reporting(E_ALL);
@@ -9,57 +11,65 @@ include 'core/auth.php';
 require_login();
 $user_id = $_SESSION['user_id'];
 
-try {
-    $sql = "SELECT 
-                B.booking_code,
-                B.tanggal_check_in,
-                B.tanggal_check_out,
-                B.status_booking,
-                B.created_at, 
-                RT.nama_tipe,
-                
-                GROUP_CONCAT(R.nomor_kamar ORDER BY R.nomor_kamar ASC SEPARATOR ', ') AS daftar_nomor_kamar,
-                COUNT(B.room_id) AS total_kamar,
-                
-                P.status_bayar,
-                P.bukti_bayar,
-                P.metode_bayar,
-                P.jumlah_bayar AS total_bayar_group /* FIXED ALIAS */
-            FROM bookings B
-            JOIN room_types RT ON B.room_type_id = RT.room_type_id
-            LEFT JOIN rooms R ON B.room_id = R.room_id
-            LEFT JOIN payments P ON B.booking_code = P.booking_code 
+// === QUERY KHUSUS (GROUP BOOKING + REVIEW) ===
+$sql = "SELECT 
+            B.booking_code,
+            B.booking_id,
+            B.tanggal_check_in,
+            B.tanggal_check_out,
+            B.status_booking,
+            B.created_at, 
+            RT.nama_tipe,
             
-            WHERE B.user_id = ?
-            GROUP BY B.booking_code 
-            ORDER BY B.created_at DESC";
+            -- DATA GABUNGAN
+            GROUP_CONCAT(R.nomor_kamar ORDER BY R.nomor_kamar ASC SEPARATOR ', ') AS daftar_nomor_kamar,
+            COUNT(B.room_id) AS jumlah_kamar, 
+            
+            -- DATA PEMBAYARAN
+            P.status_bayar,
+            P.bukti_bayar,
+            P.metode_bayar,
+            P.jumlah_bayar AS total_bayar_group,
+            
+            -- DATA REVIEW
+            RV.review_id,
+            RV.rating
+            
+        FROM Bookings B
+        JOIN Room_Types RT ON B.room_type_id = RT.room_type_id
+        LEFT JOIN Rooms R ON B.room_id = R.room_id
+        LEFT JOIN Payments P ON B.booking_code = P.booking_code
+        LEFT JOIN Reviews RV ON B.booking_id = RV.booking_id 
+        
+        WHERE B.user_id = ?
+        GROUP BY B.booking_code 
+        ORDER BY B.created_at DESC";
 
+try {
     $stmt = $mysqli->prepare($sql);
     $stmt->bind_param("i", $user_id);
     $stmt->execute();
     $result = $stmt->get_result();
     $riwayat_bookings = $result->fetch_all(MYSQLI_ASSOC);
-    
+
 } catch (Exception $e) {
     echo "<div class='container'><p class='alert alert-error'>Error Database: " . $e->getMessage() . "</p></div>";
     $riwayat_bookings = [];
 }
+
+// Bersihkan pesan session
+$success_message = $_SESSION['success_message'] ?? '';
+$error_message = $_SESSION['error_message'] ?? '';
+unset($_SESSION['success_message'], $_SESSION['error_message']);
+
 include 'includes/header.php';
 ?>
 
 <div class="container profile-page" style="margin-top: 30px; margin-bottom: 50px;">
     <h2>Riwayat Pemesanan Anda</h2>
     
-    <?php 
-    if (isset($_SESSION['success_message'])) {
-        echo '<div class="alert alert-success">'.$_SESSION['success_message'].'</div>';
-        unset($_SESSION['success_message']);
-    }
-    if (isset($_SESSION['error_message'])) {
-        echo '<div class="alert alert-error">'.$_SESSION['error_message'].'</div>';
-        unset($_SESSION['error_message']);
-    }
-    ?>
+    <?php if ($error_message): ?><div class="alert alert-error"><?php echo $error_message; ?></div><?php endif; ?>
+    <?php if ($success_message): ?><div class="alert alert-success"><?php echo $success_message; ?></div><?php endif; ?>
 
     <div class="booking-history-list">
         <?php if (empty($riwayat_bookings)): ?>
@@ -77,8 +87,9 @@ include 'includes/header.php';
                             <th style="padding: 10px; text-align: center;">No. Kamar</th>
                             <th style="padding: 10px;">Tgl. Menginap</th>
                             <th style="padding: 10px;">Total Bayar</th>
-                            <th style="padding: 10px;">Status Booking</th>
-                            <th style="padding: 10px; min-width: 250px;">Status Bayar & Aksi</th>
+                            <th style="padding: 10px;">Status</th>
+                            <th style="padding: 10px; min-width: 250px;">Pembayaran</th>
+                            <th style="padding: 10px; text-align: center;">Ulasan</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -100,7 +111,7 @@ include 'includes/header.php';
                                     <?php 
                                         if (!empty($booking['daftar_nomor_kamar'])) {
                                             echo $booking['daftar_nomor_kamar'];
-                                            echo "<br><small style='color:#666; font-weight:normal;'>(" . $booking['total_kamar'] . " Kamar)</small>";
+                                            echo "<br><small style='color:#666; font-weight:normal;'>(" . $booking['jumlah_kamar'] . " Kamar)</small>";
                                         } else {
                                             echo "-";
                                         }
@@ -113,7 +124,7 @@ include 'includes/header.php';
                                 </td>
 
                                 <td style="padding: 10px; font-weight: bold;">
-                                   Rp <?php echo number_format((float)($booking['total_bayar_group'] ?? 0), 0, ',', '.'); ?>
+                                    Rp <?php echo number_format((float)($booking['total_bayar_group'] ?? 0), 0, ',', '.'); ?>
                                 </td>
                                 
                                 <td style="padding: 10px;">
@@ -135,7 +146,7 @@ include 'includes/header.php';
                                         
                                         <?php if (!empty($booking['bukti_bayar'])): ?>
                                             <div class="payment-instruction-box alert-success" style="background-color: #e6fffa; border: 1px solid #b2f5ea; padding: 10px; border-radius: 5px;">
-                                                <p style="font-size: 11px; margin:0;">Metode: <strong><?php echo htmlspecialchars($booking['metode_bayar']); ?></strong></p>
+                                                <p style="font-size: 11px; margin:0;">Metode: <strong><?php echo htmlspecialchars($booking['metode_bayar'] ?? 'Transfer'); ?></strong></p>
                                                 <p style="font-size: 11px; margin:0;">Bukti terkirim. Tunggu Admin.</p>
                                             </div>
                                         
@@ -148,7 +159,6 @@ include 'includes/header.php';
                                                 </div>
 
                                                 <form action="actions/action_upload_bukti.php" method="POST" enctype="multipart/form-data">
-                                                    
                                                     <input type="hidden" name="booking_code" value="<?php echo $booking['booking_code']; ?>">
                                                     
                                                     <div class="form-group-inline" style="margin-bottom: 5px;">
@@ -183,6 +193,23 @@ include 'includes/header.php';
                                         <span style="color: orange;"><?php echo $booking['status_bayar']; ?></span>
                                     <?php endif; ?>
                                 </td>
+                                
+                                <td style="padding: 10px; text-align: center;">
+                                    <?php if (!empty($booking['review_id'])): ?>
+                                        <span style="color: #28a745; font-weight: bold; font-size:12px;">✔ Selesai</span>
+                                        <br>
+                                        <small>Rating: <?php echo $booking['rating']; ?>/5</small>
+                                    
+                                    <?php elseif ($booking['status_bayar'] == 'Success'): ?>
+                                        <a href="leave_review.php?booking_id=<?php echo $booking['booking_id']; ?>" 
+                                           style="display:inline-block; padding:5px 10px; background:#007bff; color:white; text-decoration:none; border-radius:4px; font-size:12px;">
+                                           Beri Ulasan
+                                        </a>
+                                    <?php else: ?>
+                                        <span style="color: #aaa;">-</span>
+                                    <?php endif; ?>
+                                </td>
+
                             </tr>
                         <?php endforeach; ?>
                     </tbody>
@@ -193,7 +220,7 @@ include 'includes/header.php';
 </div>
 
 <script>
-// Data Nomor Rekening & Gambar QRIS
+// DAFTAR REKENING LENGKAP (SESUAI REQUEST)
 const paymentDetails = {
     'QRIS': '<p style="text-align: center;">Scan QR Code:</p><img src="<?php echo BASE_URL; ?>assets/images/qris.jpg" style="width: 100px; margin: 0 auto; display: block;">',
     'BCA': '<p style="font-size:11px">BCA: <strong style="color:blue">888001234567</strong><br>A.n Hotel Madura</p>',
@@ -201,7 +228,7 @@ const paymentDetails = {
     'BNI': '<p style="font-size:11px">BNI: <strong style="color:red">0887776665</strong></p>',
     'BRI': '<p style="font-size:11px">BRI: <strong style="color:green">0447776665</strong></p>',
     'OVO': '<p style="font-size:11px">OVO: <strong style="color:purple">08123456789</strong></p>',
-    'Gopay': '<p style="font-size:11px">Gopay: <strong style="color:green">08123456789</strong></p>',
+    'Gopay': '<p style="font-size:11px">Gopay: <strong style="color:green">08123456789</strong></p>'
 };
 
 function showPaymentInstruction(selectElement, bookingCode) {
@@ -216,6 +243,4 @@ function showPaymentInstruction(selectElement, bookingCode) {
 }
 </script>
 
-<?php
-include 'includes/footer.php';
-?>
+<?php include 'includes/footer.php'; ?>
