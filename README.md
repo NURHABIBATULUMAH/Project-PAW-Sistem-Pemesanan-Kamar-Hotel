@@ -66,6 +66,7 @@ Aplikasi berbasis web untuk melakukan pemesanan kamar hotel secara online. Siste
     ├── images/
     │   ├── profile/
     │   ├── rooms/
+    │   ├── image.png
     └── uploads/
         ├── payment.png
 ```
