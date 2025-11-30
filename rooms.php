@@ -105,7 +105,6 @@ try {
         line-height: 1.6;
         margin-bottom: 20px;
         display: -webkit-box;
-        -webkit-line-clamp: 3; /* Batasi teks jadi 3 baris */
         -webkit-box-orient: vertical;
         overflow: hidden;
     }
