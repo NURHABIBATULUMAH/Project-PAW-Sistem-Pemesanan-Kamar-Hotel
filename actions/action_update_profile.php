@@ -1,5 +1,4 @@
 <?php
-
 session_start();
 include '../config/database.php';
 include '../core/auth.php'; 
@@ -9,6 +8,7 @@ $user_id = $_SESSION['user_id'];
 
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
     
+    // Ambil data yang dikirim dari form profile.php
     $username = $_POST['username'] ?? null;
     $nik = $_POST['nik'] ?? null;
     $phone = $_POST['phone'] ?? null;
@@ -19,7 +19,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 
     try {
         // Query UPDATE data pengguna (Konversi ke MySQLi)
-        $sql = "UPDATE Users SET 
+        $sql = "UPDATE users SET 
                 username = ?, 
                 nik = ?, 
                 phone = ?, 
@@ -49,7 +49,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         header('Location: ../profile.php');
         exit;
 
-    } catch (Exception $e) {
+    } catch (Exception $e) { // Tangkap 'Exception' umum
         $_SESSION['error_message'] = "Error database saat update: " . $e->getMessage();
         header('Location: ../profile.php');
         exit;
