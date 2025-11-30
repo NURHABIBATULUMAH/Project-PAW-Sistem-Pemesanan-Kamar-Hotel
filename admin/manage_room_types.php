@@ -1,227 +1,212 @@
 <?php
+// /admin/manage_rooms.php
+// VERSI: TAMPILAN SESUAI PERMINTAAN + FITUR CEK PENGHUNI
+
+include '../config/database.php'; // Pastikan path ini benar
+include '../core/auth.php';       // Pastikan path ini benar
+require_admin();
+
 include '../includes/admin_header.php'; 
 
 $message = '';
 $message_type = '';
-$edit_type = null;
+$edit_room = null;
 
 try {
-    // Tentukan folder upload (Tidak berubah)
-    $target_dir = "../assets/images/rooms/";
-    if (!file_exists($target_dir)) {
-        mkdir($target_dir, 0755, true);
-    }
-
-    // === LOGIKA PROSES FORM (CREATE & UPDATE) - Konversi ke MySQLi ===
-    if ($_SERVER["REQUEST_METHOD"] == "POST") {
-        $nama_tipe = $_POST['nama_tipe'];
-        $deskripsi_tipe = $_POST['deskripsi_tipe'];
-        $harga_weekdays = $_POST['harga_weekdays'];
-        $harga_weekend = $_POST['harga_weekend'];
-        $id_to_update = $_POST['room_type_id'] ?? null;
-        $foto_utama_lama = $_POST['foto_lama'] ?? null;
-        $foto_file = $_FILES['foto_utama'] ?? null;
-        
-        $foto_nama = $foto_utama_lama; // Default: pakai foto lama
-
-        // Proses File Upload 
-        if ($foto_file && $foto_file['error'] == UPLOAD_ERR_OK) {
-            $file_ext = strtolower(pathinfo($foto_file["name"], PATHINFO_EXTENSION));
-            $allowed_types = ['jpg', 'jpeg', 'png'];
-            
-            if (!in_array($file_ext, $allowed_types) || $foto_file['size'] > 5000000) { // Max 5MB
-                $message = "Gagal upload. File harus JPG/PNG dan maksimal 5MB.";
-                $message_type = 'error';
-                throw new Exception($message); // Lewatkan proses DB
-            }
-            
-            // generete bana file baru
-            $new_foto_name = "kamar_" . time() . "." . $file_ext;
-            if (move_uploaded_file($foto_file["tmp_name"], $target_dir . $new_foto_name)) {
-                $foto_nama = $new_foto_name;
-
-                // jika update foto lama di hapus
-                if ($id_to_update && $foto_utama_lama && file_exists($target_dir . $foto_utama_lama)) {
-                    unlink($target_dir . $foto_utama_lama);
-                }
-            } else {
-                throw new Exception("Gagal memindahkan file foto.");
-            }
-        }
-        
-        // 2. Query DB (Konversi ke MySQLi)
-        if ($id_to_update) {
-            // UPDATE
-            $sql = "UPDATE Room_Types SET nama_tipe=?, deskripsi_tipe=?, harga_weekdays=?, harga_weekend=?, foto_utama=? WHERE room_type_id=?";
-            $stmt = $mysqli->prepare($sql);
-            // "ssddsi" = string, string, double, double, string, integer
-            $stmt->bind_param("ssddsi", $nama_tipe, $deskripsi_tipe, $harga_weekdays, $harga_weekend, $foto_nama, $id_to_update);
-            $stmt->execute();
-            $message = "Tipe kamar berhasil diperbarui.";
-        } else {
-            // CREATE
-            $sql = "INSERT INTO Room_Types (nama_tipe, deskripsi_tipe, harga_weekdays, harga_weekend, foto_utama) VALUES (?, ?, ?, ?, ?)";
-            $stmt = $mysqli->prepare($sql);
-            // "ssdds" = string, string, double, double, string
-            $stmt->bind_param("ssdds", $nama_tipe, $deskripsi_tipe, $harga_weekdays, $harga_weekend, $foto_nama);
-            $stmt->execute();
-            $message = "Tipe kamar baru berhasil ditambahkan.";
-        }
-        $message_type = 'success';
-        
-    }
-    
-    // === LOGIKA PROSES DELETE (Konversi ke MySQLi Transaction) ===
+    // === 1. LOGIKA PROSES DELETE ===
     if (isset($_GET['action']) && $_GET['action'] == 'delete' && isset($_GET['id'])) {
         $id_to_delete = $_GET['id'];
         
-        // Ambil nama foto lama (Query 1 - MySQLi)
-        $sql_old = "SELECT foto_utama FROM Room_Types WHERE room_type_id = ?";
-        $stmt_old = $mysqli->prepare($sql_old);
-        $stmt_old->bind_param("i", $id_to_delete);
-        $stmt_old->execute();
-        $result_old = $stmt_old->get_result();
-        $old_foto_row = $result_old->fetch_row();
-        $old_foto = $old_foto_row ? $old_foto_row[0] : null;
+        // Cek apakah ada tamu aktif sebelum hapus (Biar aman)
+        $cek_tamu = $mysqli->query("SELECT * FROM bookings WHERE room_id = $id_to_delete AND status_booking IN ('Confirmed','Paid')");
         
-        $mysqli->begin_transaction(); // Mulai Transaksi (Sintaks MySQLi)
-        try {
-            // Hapus keterkaitan di tabel Rooms dulu (Query 2 - MySQLi)
-            $stmt_room = $mysqli->prepare("DELETE FROM Rooms WHERE room_type_id = ?");
-            $stmt_room->bind_param("i", $id_to_delete);
-            $stmt_room->execute();
-
-            // Hapus tipe kamar (Query 3 - MySQLi)
-            $stmt = $mysqli->prepare("DELETE FROM Room_Types WHERE room_type_id = ?");
-            $stmt->bind_param("i", $id_to_delete);
-            $stmt->execute();
-            
-            $mysqli->commit(); // Commit Transaksi (Sintaks MySQLi)
-            
-            // Hapus file fisik (Tidak berubah)
-            if ($old_foto && file_exists($target_dir . $old_foto)) {
-                unlink($target_dir . $old_foto);
-            }
-            $message = "Tipe kamar berhasil dihapus (dan semua kamar fisiknya).";
-            $message_type = 'success';
-            
-        } catch (Exception $e) { // Tangkap 'Exception' umum
-            $mysqli->rollback(); // Rollback Transaksi (Sintaks MySQLi)
-             if ($e->getCode() == 1451) { // 1451 = Error Foreign Key Constraint
-                $message = "Gagal menghapus! Ada booking aktif yang menggunakan tipe kamar ini.";
-            } else {
-                $message = "Error database: " . $e->getMessage();
-            }
+        if ($cek_tamu->num_rows > 0) {
+            $message = "Gagal hapus! Kamar sedang ada penghuninya atau terikat pesanan aktif.";
             $message_type = 'error';
+        } else {
+            try {
+                $sql_delete = "DELETE FROM rooms WHERE room_id = ?";
+                $stmt_delete = $mysqli->prepare($sql_delete);
+                $stmt_delete->bind_param("i", $id_to_delete);
+                $stmt_delete->execute();
+                
+                $message = "Kamar berhasil dihapus.";
+                $message_type = 'success';
+            } catch (Exception $e) { 
+                 $message = "Gagal menghapus. Error: " . $e->getMessage();
+                 $message_type = 'error';
+            }
         }
     }
 
-    // === LOGIKA PROSES EDIT (Konversi ke MySQLi) ===
+    // === 2. LOGIKA PROSES CREATE & UPDATE ===
+    if ($_SERVER["REQUEST_METHOD"] == "POST") {
+        $room_type_id = $_POST['room_type_id'];
+        $nomor_kamar = $_POST['nomor_kamar'];
+        $status = $_POST['status'];
+        $id_to_update = $_POST['room_id'] ?? null;
+
+        if ($id_to_update) {
+            // UPDATE
+            $sql = "UPDATE rooms SET room_type_id = ?, nomor_kamar = ?, status = ? WHERE room_id = ?";
+            $stmt = $mysqli->prepare($sql);
+            $stmt->bind_param("issi", $room_type_id, $nomor_kamar, $status, $id_to_update);
+            $stmt->execute();
+            $message = "Data kamar berhasil diperbarui.";
+        } else {
+            // CREATE (TAMBAH STOK)
+            $sql = "INSERT INTO rooms (room_type_id, nomor_kamar, status) VALUES (?, ?, ?)";
+            $stmt = $mysqli->prepare($sql);
+            $stmt->bind_param("iss", $room_type_id, $nomor_kamar, $status);
+            $stmt->execute();
+            $message = "Kamar baru berhasil ditambahkan.";
+        }
+        $message_type = 'success';
+    }
+
+    // === 3. PROSES EDIT (AMBIL DATA UTK FORM) ===
     if (isset($_GET['action']) && $_GET['action'] == 'edit' && isset($_GET['id'])) {
         $id_to_edit = $_GET['id'];
-        $sql_edit = "SELECT * FROM Room_Types WHERE room_type_id = ?";
+        $sql_edit = "SELECT * FROM rooms WHERE room_id = ?";
         $stmt_edit = $mysqli->prepare($sql_edit);
         $stmt_edit->bind_param("i", $id_to_edit);
         $stmt_edit->execute();
         $result_edit = $stmt_edit->get_result();
-        $edit_type = $result_edit->fetch_assoc(); 
+        $edit_room = $result_edit->fetch_assoc();
     }
+
+    // === 4. AMBIL DATA UTAMA (DENGAN CEK PENGHUNI) ===
+    // Query 1: Ambil Tipe Kamar (untuk dropdown)
+    $all_types_result = $mysqli->query("SELECT * FROM room_types");
+    $all_types = $all_types_result->fetch_all(MYSQLI_ASSOC);
     
-    // Ambil data utama (Konversi ke MySQLi)
-    $all_types_result = $mysqli->query("SELECT * FROM Room_Types ORDER BY harga_weekdays ASC");
-    $all_types = $all_types_result->fetch_all(MYSQLI_ASSOC); // Menggantikan fetchAll() PDO
+    // Query 2: Ambil Daftar Kamar + Status Huni (Subquery Pintar)
+    $today = date('Y-m-d');
+    $sql_rooms = "SELECT rooms.*, room_types.nama_tipe,
+                  (
+                    SELECT COUNT(*) FROM bookings b 
+                    WHERE b.room_id = rooms.room_id 
+                    AND b.status_booking IN ('Confirmed', 'Paid') 
+                    AND '$today' >= b.tanggal_check_in 
+                    AND '$today' < b.tanggal_check_out
+                  ) as sedang_diinap
+                  FROM rooms 
+                  JOIN room_types ON rooms.room_type_id = room_types.room_type_id
+                  ORDER BY rooms.nomor_kamar ASC";
+
+    $all_rooms_result = $mysqli->query($sql_rooms);
+    $all_rooms = $all_rooms_result->fetch_all(MYSQLI_ASSOC);
 
 } catch (Exception $e) {
-    $message = "Error saat memproses: " . $e->getMessage();
+    $message = "Error database: " . $e->getMessage();
     $message_type = 'error';
 }
 ?>
 
 <div class="content-header">
-    <h1>Kelola Tipe Kamar</h1>
+    <h1>Kelola Stok Kamar Fisik</h1>
 </div>
 
 <?php if ($message): ?>
-    <div class="alert alert-<?php echo ($message_type == 'success') ? 'success' : 'error'; ?>">
+    <div class="alert alert-<?php echo ($message_type == 'success') ? 'alert-success' : 'alert-error'; ?>">
         <?php echo $message; ?>
     </div>
 <?php endif; ?>
 
 <div class="admin-card">
-    <h3><?php echo $edit_type ? 'Edit Tipe Kamar' : 'Tambah Tipe Kamar Baru'; ?></h3>
+    <h3><?php echo $edit_room ? 'Edit Kamar' : 'Tambah Kamar Baru (Tambah Stok)'; ?></h3>
     
-    <form action="manage_room_types.php" method="POST" class="admin-form" enctype="multipart/form-data">
-        <input type="hidden" name="room_type_id" value="<?php echo $edit_type['room_type_id'] ?? ''; ?>">
-        <input type="hidden" name="foto_lama" value="<?php echo $edit_type['foto_utama'] ?? ''; ?>">
+    <form action="manage_rooms.php" method="POST" class="admin-form">
+        <input type="hidden" name="room_id" value="<?php echo $edit_room['room_id'] ?? ''; ?>">
         
         <div class="form-group">
-            <label for="nama_tipe">Nama Tipe Kamar</label>
-            <input type="text" id="nama_tipe" name="nama_tipe" value="<?php echo htmlspecialchars($edit_type['nama_tipe'] ?? ''); ?>" required>
+            <label for="nomor_kamar">Nomor Kamar (Contoh: 101, 201A)</label>
+            <input type="text" id="nomor_kamar" name="nomor_kamar" value="<?php echo htmlspecialchars($edit_room['nomor_kamar'] ?? ''); ?>" required>
         </div>
         
         <div class="form-group">
-            <label for="deskripsi_tipe">Deskripsi</label>
-            <textarea id="deskripsi_tipe" name="deskripsi_tipe" required><?php echo htmlspecialchars($edit_type['deskripsi_tipe'] ?? ''); ?></textarea>
-        </div>
-        
-        <div class="form-group">
-            <label for="harga_weekdays">Harga Weekdays (Rp)</label>
-            <input type="number" id="harga_weekdays" name="harga_weekdays" value="<?php echo htmlspecialchars($edit_type['harga_weekdays'] ?? ''); ?>" required min="0">
+            <label for="room_type_id">Tipe Kamar</label>
+            <select id="room_type_id" name="room_type_id" required>
+                <option value="">-- Pilih Tipe Kamar --</option>
+                <?php foreach ($all_types as $type): ?>
+                    <option value="<?php echo $type['room_type_id']; ?>" 
+                        <?php echo (isset($edit_room) && $edit_room['room_type_id'] == $type['room_type_id']) ? 'selected' : ''; ?>>
+                        <?php echo htmlspecialchars($type['nama_tipe']); ?>
+                    </option>
+                <?php endforeach; ?>
+            </select>
         </div>
 
         <div class="form-group">
-            <label for="harga_weekend">Harga Weekend (Rp)</label>
-            <input type="number" id="harga_weekend" name="harga_weekend" value="<?php echo htmlspecialchars($edit_type['harga_weekend'] ?? ''); ?>" required min="0">
-        </div>
-        
-        <div class="form-group">
-            <label for="foto_utama">Foto Utama</label>
-            <input type="file" id="foto_utama" name="foto_utama" <?php echo $edit_type ? '' : 'required'; ?>>
-            <?php if ($edit_type && $edit_type['foto_utama']): ?>
-                <p style="margin-top: 5px; font-size: 12px;">Foto saat ini: <?php echo htmlspecialchars($edit_type['foto_utama']); ?> (Biarkan kosong untuk mempertahankan)</p>
-            <?php endif; ?>
+            <label for="status">Status Kamar (Fisik)</label>
+            <select id="status" name="status" required>
+                <option value="Available" <?php echo (isset($edit_room) && $edit_room['status'] == 'Available') ? 'selected' : ''; ?>>Available (Siap Jual)</option>
+                <option value="Under Maintenance" <?php echo (isset($edit_room) && $edit_room['status'] == 'Under Maintenance') ? 'selected' : ''; ?>>Under Maintenance (Rusak)</option>
+                </select>
         </div>
         
         <div class="form-group"></div> 
 
-        <button type="submit" class="btn-admin"><?php echo $edit_type ? 'Update Tipe Kamar' : 'Tambah Tipe Kamar'; ?></button>
+        <button type="submit" class="btn-admin"><?php echo $edit_room ? 'Update Data' : 'Tambah Kamar'; ?></button>
         
-        <?php if ($edit_type): ?>
-            <a href="manage_room_types.php" style="text-align: center; grid-column: 1 / -1; margin-top: 10px;">Batal Edit</a>
+        <?php if ($edit_room): ?>
+            <a href="manage_rooms.php" style="display:inline-block; margin-top: 10px; color: red;">Batal Edit</a>
         <?php endif; ?>
     </form>
 </div>
 
 <div class="admin-card">
-    <h3>Daftar Tipe Kamar</h3>
-    <table class="admin-table">
-        <thead>
-            <tr>
-                <th>Foto</th>
-                <th>Nama Tipe</th>
-                <th>Harga Weekdays</th>
-                <th>Harga Weekend</th>
-                <th>Deskripsi</th>
-                <th>Aksi</th>
-            </tr>
-        </thead>
-        <tbody>
-            <?php foreach ($all_types as $type): ?>
-            <tr>
-                <td><img src="../assets/images/rooms/<?php echo htmlspecialchars($type['foto_utama']); ?>" style="width: 80px; height: 50px; object-fit: cover;"></td>
-                <td><?php echo htmlspecialchars($type['nama_tipe']); ?></td>
-                <td>Rp <?php echo number_format($type['harga_weekdays'], 0, ',', '.'); ?></td>
-                <td>Rp <?php echo number_format($type['harga_weekend'], 0, ',', '.'); ?></td>
-                <td style="max-width: 200px; font-size: 14px;"><?php echo htmlspecialchars(substr($type['deskripsi_tipe'], 0, 50)) . '...'; ?></td>
-                <td class="action-links">
-                    <a href="manage_room_types.php?action=edit&id=<?php echo $type['room_type_id']; ?>" class="edit-link">Edit</a>
-                    <a href="manage_room_types.php?action=delete&id=<?php echo $type['room_type_id']; ?>" class="delete-link" 
-                       onclick="return confirm('Yakin menghapus tipe kamar ini? Ini akan menghapus semua kamar fisik yang terkait!');">Hapus</a>
-                </td>
-            </tr>
-            <?php endforeach; ?>
-        </tbody>
-    </table>
+    <h3>Daftar Kamar & Status Penghuni</h3>
+    <p>Lihat stok kamar dan apakah ada tamu yang sedang menginap.</p>
+    
+    <div style="overflow-x: auto;">
+        <table class="admin-table">
+            <thead>
+                <tr>
+                    <th>Nomor</th>
+                    <th>Tipe Kamar</th>
+                    <th>Status Fisik</th>
+                    <th>Penghuni (Hari Ini)</th> <th>Aksi</th>
+                </tr>
+            </thead>
+            <tbody>
+                <?php foreach ($all_rooms as $room): ?>
+                <tr>
+                    <td style="font-weight:bold; font-size:1.1rem;"><?php echo htmlspecialchars($room['nomor_kamar']); ?></td>
+                    <td><?php echo htmlspecialchars($room['nama_tipe']); ?></td>
+                    
+                    <td>
+                        <?php if($room['status'] == 'Available'): ?>
+                             <span style="color:green; font-weight:bold;">✔ Siap Jual</span>
+                        <?php else: ?>
+                             <span style="color:red; font-weight:bold;">🛠 Perbaikan</span>
+                        <?php endif; ?>
+                    </td>
+
+                    <td>
+                        <?php 
+                            if ($room['status'] == 'Under Maintenance') {
+                                echo '<span style="background:#ccc; color:#333; padding:3px 8px; border-radius:4px; font-size:12px;">Non-Aktif</span>';
+                            } elseif ($room['sedang_diinap'] > 0) {
+                                echo '<span style="background:#ff4757; color:white; padding:3px 8px; border-radius:4px; font-size:12px;">⛔ Ada Tamu</span>';
+                            } else {
+                                echo '<span style="background:#2ed573; color:white; padding:3px 8px; border-radius:4px; font-size:12px;">🟢 Kosong</span>';
+                            }
+                        ?>
+                    </td>
+
+                    <td class="action-links">
+                        <a href="manage_rooms.php?action=edit&id=<?php echo $room['room_id']; ?>" class="edit-link" style="color:blue;">Edit</a>
+                        |
+                        <a href="manage_rooms.php?action=delete&id=<?php echo $room['room_id']; ?>" class="delete-link" 
+                           style="color:red;"
+                           onclick="return confirm('Yakin ingin menghapus kamar <?php echo htmlspecialchars($room['nomor_kamar']); ?>?');">Hapus</a>
+                    </td>
+                </tr>
+                <?php endforeach; ?>
+            </tbody>
+        </table>
+    </div>
 </div>
 
 <?php
