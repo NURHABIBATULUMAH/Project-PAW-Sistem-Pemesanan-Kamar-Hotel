@@ -7,8 +7,9 @@ $error_message = $_SESSION['error_message'] ?? '';
 $success_message = $_SESSION['success_message'] ?? '';
 unset($_SESSION['error_message'], $_SESSION['success_message']);
 
+// $mysqli sudah ada dari header.php
 try {
-    $sql = "SELECT * FROM Users WHERE user_id = ?";
+    $sql = "SELECT * FROM users WHERE user_id = ?";
     $stmt = $mysqli->prepare($sql);
     $stmt->bind_param("i", $user_id);
     $stmt->execute();
