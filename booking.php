@@ -1,10 +1,9 @@
 <?php
 // /booking.php
-// VERSI FINAL: DENGAN JEMBATAN DATA PILIHAN KAMAR
+// VERSI FIX: MEMASTIKAN DATA ID KAMAR DIKIRIM KE ACTION
 
 include 'config/database.php';
 include 'core/auth.php'; 
-include 'core/booking_logic.php'; 
 include 'includes/header.php';
 
 require_login();
@@ -24,28 +23,32 @@ if (empty($data_user['nik']) || empty($data_user['phone']) || empty($data_user['
     exit;
 }
 
+// 2. TANGKAP DATA DARI FORM SEBELUMNYA (ROOM DETAIL)
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
     $room_type_id = $_POST['room_type_id'] ?? null;
     $check_in = $_POST['check_in'] ?? null;
     $check_out = $_POST['check_out'] ?? null;
     $jumlah_kamar = (int) ($_POST['jumlah_kamar'] ?? 0);
     
-    // [PENTING] Tangkap data pilihan kamar dari room_detail.php
-    $pilihan_kamar = $_POST['pilihan_kamar'] ?? []; 
+    // [PENTING] Tangkap ID kamar dari room_detail.php
+    $selected_ids_str = $_POST['selected_room_ids'] ?? ''; 
+
+    // Validasi: Jika kosong, kembalikan
+    if (empty($selected_ids_str)) {
+        echo "<script>alert('Harap pilih kamar terlebih dahulu!'); window.history.back();</script>";
+        exit;
+    }
+
+    $selected_room_ids = explode(',', $selected_ids_str);
     
 } else {
     header('Location: index.php');
     exit;
 }
 
-if (empty($room_type_id) || empty($check_in) || empty($check_out) || $jumlah_kamar <= 0) {
-    echo "<div class='container'><p class='alert alert-error'>Data pemesanan tidak lengkap.</p></div>";
-    include 'includes/footer.php';
-    exit;
-}
-
+// 3. AMBIL DATA TYPE KAMAR & HITUNG HARGA
 try {
-    // 1. Ambil data tipe kamar & harga
+    // A. Info Tipe Kamar
     $sql_type = "SELECT nama_tipe, harga_weekdays, harga_weekend FROM room_types WHERE room_type_id = ?";
     $stmt_type = $mysqli->prepare($sql_type);
     $stmt_type->bind_param("i", $room_type_id);
@@ -53,11 +56,22 @@ try {
     $result_type = $stmt_type->get_result();
     $room_type = $result_type->fetch_assoc();
 
-    if (!$room_type) {
-        throw new Exception("Detail kamar tidak ditemukan.");
-    }
+    if (!$room_type) { throw new Exception("Detail kamar tidak ditemukan."); }
 
-    // 2. Hitung durasi & harga total
+    // B. Ambil Nomor Kamar Asli (Untuk Tampilan Konfirmasi)
+    $ids_safe = array_map('intval', $selected_room_ids);
+    $ids_query = implode(',', $ids_safe);
+    
+    $sql_nomor = "SELECT nomor_kamar FROM rooms WHERE room_id IN ($ids_query) ORDER BY nomor_kamar ASC";
+    $res_nomor = $mysqli->query($sql_nomor);
+    
+    $list_nomor_kamar = [];
+    while($row = $res_nomor->fetch_assoc()){
+        $list_nomor_kamar[] = $row['nomor_kamar'];
+    }
+    $display_nomor_kamar = implode(', ', $list_nomor_kamar);
+
+    // C. Hitung Durasi & Harga
     $start_date = new DateTime($check_in);
     $end_date = new DateTime($check_out);
     $interval = DateInterval::createFromDateString('1 day');
@@ -67,7 +81,7 @@ try {
     $count_weekend = 0;
 
     foreach ($period as $dt) {
-        $day_num = $dt->format('N'); // 1 (Senin) - 7 (Minggu)
+        $day_num = $dt->format('N'); 
         if ($day_num == 6 || $day_num == 7) { 
             $count_weekend++;
         } else {
@@ -80,7 +94,7 @@ try {
     $harga_satu_kamar_total = $subtotal_weekday + $subtotal_weekend;
     $total_harga_kamar = $harga_satu_kamar_total * $jumlah_kamar;
 
-    // Ambil Fasilitas Tambahan
+    // D. Ambil Fasilitas Tambahan
     $sql_fas = "SELECT * FROM fasilitas_tambahan ORDER BY nama_fasilitas ASC";
     $fasilitas_result = $mysqli->query($sql_fas);
     $fasilitas_list = $fasilitas_result->fetch_all(MYSQLI_ASSOC);
@@ -93,9 +107,9 @@ try {
 ?>
 
 <div class="container">
-    <div class="form-container" style="max-width: 800px;">
+    <div class="form-container" style="max-width: 800px; margin: 30px auto;">
         <h2>Konfirmasi & Tambah Fasilitas</h2>
-        <p>Pesanan untuk: <strong><?php echo htmlspecialchars($_SESSION['user_name']); ?></strong></p>
+        <p>Pesanan untuk: <strong><?php echo htmlspecialchars($_SESSION['user_name'] ?? 'User'); ?></strong></p>
 
         <form action="actions/action_booking.php" method="POST" id="booking-form">
             
@@ -105,41 +119,35 @@ try {
             <input type="hidden" name="check_out" value="<?php echo $check_out; ?>">
             <input type="hidden" name="jumlah_kamar" value="<?php echo $jumlah_kamar; ?>">
             <input type="hidden" name="total_harga_kamar" value="<?php echo $total_harga_kamar; ?>">
+            
+            <input type="hidden" name="selected_room_ids" value="<?php echo htmlspecialchars($selected_ids_str); ?>">
 
-            <?php 
-            if (!empty($pilihan_kamar)) {
-                foreach ($pilihan_kamar as $nomor) {
-                    echo '<input type="hidden" name="pilihan_kamar[]" value="' . htmlspecialchars($nomor) . '">';
-                }
-            }
-            ?>
-            <div class="booking-summary" style="background: #f9f9f9; padding: 15px; border-radius: 8px; border: 1px solid #eee;">
-                <h4 style="margin-top: 0;">Rincian Pesanan</h4>
+            <div class="booking-summary" style="background: #f9f9f9; padding: 20px; border-radius: 8px; border: 1px solid #ddd;">
+                <h4 style="margin-top: 0; border-bottom: 2px solid #ddd; padding-bottom: 10px;">Rincian Pesanan</h4>
                 
                 <div style="margin-bottom: 15px;">
-                    <strong>Tipe Kamar:</strong> <?php echo htmlspecialchars($room_type['nama_tipe']); ?> <br>
-                    <strong>Tanggal:</strong> <?php echo date('d/m/Y', strtotime($check_in)); ?> - <?php echo date('d/m/Y', strtotime($check_out)); ?> <br>
+                    <p><strong>Tipe Kamar:</strong> <?php echo htmlspecialchars($room_type['nama_tipe']); ?></p>
+                    <p><strong>Tanggal:</strong> <?php echo date('d/m/Y', strtotime($check_in)); ?> s/d <?php echo date('d/m/Y', strtotime($check_out)); ?></p>
                     
-                    <?php if (!empty($pilihan_kamar)): ?>
-                        <div style="margin-top:5px; padding:5px; background:#e2e6ea; border-radius:4px; display:inline-block;">
-                            <strong>Nomor Kamar Dipilih:</strong> <?php echo implode(", ", $pilihan_kamar); ?>
-                        </div>
-                    <?php else: ?>
-                        <em style="color:gray;">(Kamar akan dipilihkan sistem otomatis)</em>
-                    <?php endif; ?>
+                    <div style="margin-top:10px; padding:10px; background:#e8f4fd; border-left: 5px solid #2196F3; border-radius:4px;">
+                        <strong>Nomor Kamar yang Dipilih:</strong> <br>
+                        <span style="font-size: 1.2em; font-weight: bold; color: #0d47a1;">
+                            <?php echo $display_nomor_kamar; ?>
+                        </span>
+                    </div>
                 </div>
 
-                <table style="width: 100%; font-size: 14px; border-collapse: collapse;">
-                    <tr style="border-bottom: 1px solid #ddd; color: #555;">
-                        <th style="text-align: left; padding: 5px;">Keterangan</th>
-                        <th style="text-align: right; padding: 5px;">Harga/Malam</th>
-                        <th style="text-align: center; padding: 5px;">Durasi</th>
-                        <th style="text-align: right; padding: 5px;">Total</th>
+                <table style="width: 100%; font-size: 14px; border-collapse: collapse; margin-top: 20px;">
+                    <tr style="border-bottom: 1px solid #ddd; background: #eee;">
+                        <th style="text-align: left; padding: 8px;">Keterangan</th>
+                        <th style="text-align: right; padding: 8px;">Harga Satuan</th>
+                        <th style="text-align: center; padding: 8px;">Qty</th>
+                        <th style="text-align: right; padding: 8px;">Subtotal</th>
                     </tr>
                     
                     <?php if($count_weekday > 0): ?>
                     <tr>
-                        <td style="padding: 5px;">Weekdays</td>
+                        <td style="padding: 8px;">Malam Weekday</td>
                         <td style="text-align: right;">Rp <?php echo number_format($room_type['harga_weekdays'], 0, ',', '.'); ?></td>
                         <td style="text-align: center;"><?php echo $count_weekday; ?> malam</td>
                         <td style="text-align: right;">Rp <?php echo number_format($subtotal_weekday, 0, ',', '.'); ?></td>
@@ -148,22 +156,21 @@ try {
 
                     <?php if($count_weekend > 0): ?>
                     <tr>
-                        <td style="padding: 5px; color: #d9534f;">Weekend</td>
+                        <td style="padding: 8px; color: #d9534f;">Malam Weekend</td>
                         <td style="text-align: right; color: #d9534f;">Rp <?php echo number_format($room_type['harga_weekend'], 0, ',', '.'); ?></td>
                         <td style="text-align: center; color: #d9534f;"><?php echo $count_weekend; ?> malam</td>
-                        <td style="text-align: right; font-weight: bold; color: #d9534f;">Rp <?php echo number_format($subtotal_weekend, 0, ',', '.'); ?></td>
+                        <td style="text-align: right; color: #d9534f;">Rp <?php echo number_format($subtotal_weekend, 0, ',', '.'); ?></td>
                     </tr>
                     <?php endif; ?>
-                    
-                    <tr style="border-top: 1px solid #ddd;">
-                        <td colspan="3" style="text-align: right; padding: 8px;"><strong>Harga Per Kamar:</strong></td>
-                        <td style="text-align: right; padding: 8px;"><strong>Rp <?php echo number_format($harga_satu_kamar_total, 0, ',', '.'); ?></strong></td>
-                    </tr>
 
+                    <tr style="border-top: 2px solid #ddd; font-weight: bold;">
+                        <td colspan="3" style="text-align: right; padding: 8px;">Harga 1 Kamar:</td>
+                        <td style="text-align: right; padding: 8px;">Rp <?php echo number_format($harga_satu_kamar_total, 0, ',', '.'); ?></td>
+                    </tr>
                     <?php if($jumlah_kamar > 1): ?>
-                    <tr style="background-color: #e9ecef;">
-                        <td colspan="3" style="text-align: right; padding: 8px;">x <?php echo $jumlah_kamar; ?> Kamar</td>
-                        <td style="text-align: right; padding: 8px;"><strong>Rp <?php echo number_format($total_harga_kamar, 0, ',', '.'); ?></strong></td>
+                    <tr style="background-color: #f1f1f1;">
+                        <td colspan="3" style="text-align: right; padding: 8px;">x <?php echo $jumlah_kamar; ?> Kamar:</td>
+                        <td style="text-align: right; padding: 8px;">Rp <?php echo number_format($total_harga_kamar, 0, ',', '.'); ?></td>
                     </tr>
                     <?php endif; ?>
                 </table>
@@ -172,11 +179,11 @@ try {
             <div class="fasilitas-section" style="margin-top: 30px;">
                 <h4>Tambah Fasilitas (Opsional)</h4>
                 <table style="width: 100%; border-collapse: collapse; margin-top: 10px;">
-                    <thead>
-                        <tr style="background: #eee;">
+                    <thead style="background: #eee;">
+                        <tr>
                             <th style="text-align: left; padding: 10px;">Fasilitas</th>
                             <th style="text-align: left; padding: 10px;">Harga</th>
-                            <th style="text-align: center; padding: 10px;">Qty</th>
+                            <th style="text-align: center; padding: 10px;">Jumlah</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -216,7 +223,9 @@ try {
             </div>
 
             <div class="form-group" style="margin-top: 20px;">
-                <button type="submit" class="btn-primary full-width">Lanjut ke Pembayaran &rarr;</button>
+                <button type="submit" class="btn-primary full-width" style="padding: 15px; font-size: 18px;">
+                    Lanjut ke Pembayaran &rarr;
+                </button>
             </div>
         </form>
     </div>
