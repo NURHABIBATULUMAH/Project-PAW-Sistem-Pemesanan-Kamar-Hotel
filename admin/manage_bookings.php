@@ -3,8 +3,8 @@
 ini_set('display_errors', 1);
 error_reporting(E_ALL);
 
-include 'config/database.php'; 
-include 'core/auth.php'; 
+include '../config/database.php'; 
+include '../core/auth.php'; 
 
 require_login();
 $user_id = $_SESSION['user_id'];
@@ -46,7 +46,7 @@ try {
     echo "<div class='container'><p class='alert alert-error'>Error Database: " . $e->getMessage() . "</p></div>";
     $riwayat_bookings = [];
 }
-include 'includes/header.php';
+include '../includes/header.php';
 ?>
 
 <div class="container profile-page" style="margin-top: 30px; margin-bottom: 50px;">
@@ -218,5 +218,5 @@ function showPaymentInstruction(selectElement, bookingCode) {
 </script>
 
 <?php
-include 'includes/footer.php';
+include '../includes/footer.php';
 ?>
