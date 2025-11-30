@@ -1,9 +1,7 @@
 <?php
-// /admin/manage_rooms.php
-// VERSI: TAMPILAN SESUAI PERMINTAAN + FITUR CEK PENGHUNI
 
-include '../config/database.php'; // Pastikan path ini benar
-include '../core/auth.php';       // Pastikan path ini benar
+include '../config/database.php'; 
+include '../core/auth.php';    
 require_admin();
 
 include '../includes/admin_header.php'; 
@@ -13,7 +11,7 @@ $message_type = '';
 $edit_room = null;
 
 try {
-    // === 1. LOGIKA PROSES DELETE ===
+    // LOGIKA PROSES DELETE 
     if (isset($_GET['action']) && $_GET['action'] == 'delete' && isset($_GET['id'])) {
         $id_to_delete = $_GET['id'];
         
@@ -64,7 +62,7 @@ try {
         $message_type = 'success';
     }
 
-    // === 3. PROSES EDIT (AMBIL DATA UTK FORM) ===
+    // PROSES EDIT (AMBIL DATA UTK FORM) 
     if (isset($_GET['action']) && $_GET['action'] == 'edit' && isset($_GET['id'])) {
         $id_to_edit = $_GET['id'];
         $sql_edit = "SELECT * FROM rooms WHERE room_id = ?";
@@ -75,7 +73,7 @@ try {
         $edit_room = $result_edit->fetch_assoc();
     }
 
-    // === 4. AMBIL DATA UTAMA (DENGAN CEK PENGHUNI) ===
+    // AMBIL DATA UTAMA (DENGAN CEK PENGHUNI)
     // Query 1: Ambil Tipe Kamar (untuk dropdown)
     $all_types_result = $mysqli->query("SELECT * FROM room_types");
     $all_types = $all_types_result->fetch_all(MYSQLI_ASSOC);
