@@ -64,7 +64,7 @@ try {
         $edit_fasilitas = $result_edit->fetch_assoc();
     }
     
-    $all_fasilitas_result = $mysqli->query("SELECT * FROM fasilitas_tambahan ORDER BY nama_fasilitas ASC");
+    $all_fasilitas_result = $mysqli->query("SELECT * FROM fasilitas_tambahan ORDER BY fasilitas_id ASC");
     $all_fasilitas = $all_fasilitas_result->fetch_all(MYSQLI_ASSOC);
 
 } catch (Exception $e) {
