@@ -16,25 +16,27 @@
 function get_available_specific_rooms($mysqli, $room_type_id, $check_in, $check_out) {
     $available_rooms = [];
 
-    // Perbaikan: Menggunakan 'tanggal_check_in' dan 'tanggal_check_out'
+    // QUERY FIX: Cek langsung ke tabel bookings kolom room_id
+    // Logika: Ambil kamar yang room_id-nya TIDAK ADA di daftar booking pada rentang tanggal tersebut
     $sql = "
-        SELECT room_id, nomor_kamar 
-        FROM Rooms 
-        WHERE room_type_id = ? 
-        AND status = 'Available' 
-        AND room_id NOT IN (
-            SELECT room_id 
-            FROM Bookings 
-            WHERE status_booking IN ('Confirmed', 'Pending', 'Paid') 
-            AND tanggal_check_in < ? 
-            AND tanggal_check_out > ?
+        SELECT r.room_id, r.nomor_kamar 
+        FROM rooms r
+        WHERE r.room_type_id = ? 
+        AND r.status = 'Available' 
+        AND r.room_id NOT IN (
+            SELECT b.room_id 
+            FROM bookings b
+            WHERE b.status_booking IN ('Confirmed', 'Pending', 'Paid') 
+            AND b.room_id IS NOT NULL 
+            AND (
+                (b.tanggal_check_in < ? AND b.tanggal_check_out > ?)
+            )
         )
-        ORDER BY nomor_kamar ASC
+        ORDER BY r.nomor_kamar ASC
     ";
 
     if ($stmt = $mysqli->prepare($sql)) {
-        // Parameter: room_type_id (int), check_out (string), check_in (string)
-        // Logika overlap: Booking.Start < Request.End && Booking.End > Request.Start
+        // Urutan binding: room_type_id, check_out, check_in
         $stmt->bind_param("iss", $room_type_id, $check_out, $check_in);
         $stmt->execute();
         $result = $stmt->get_result();
@@ -67,7 +69,7 @@ function check_room_stock($mysqli, $room_type_id, $start_date, $end_date, $quant
  */
 function calculate_total_price($mysqli, $room_type_id, $start_date, $end_date) {
     // Pastikan nama tabel konsisten (Room_Types atau room_types)
-    $sql_price = "SELECT harga_weekdays, harga_weekend FROM Room_Types WHERE room_type_id = ?";
+    $sql_price = "SELECT harga_weekdays, harga_weekend FROM room_types WHERE room_type_id = ?";
     $stmt_price = $mysqli->prepare($sql_price);
     $stmt_price->bind_param("i", $room_type_id);
     $stmt_price->execute();
