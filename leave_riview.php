@@ -5,14 +5,16 @@ require_login();
 $user_id = $_SESSION['user_id'];
 $booking_id = $_GET['booking_id'] ?? 0;
 
+// $mysqli sudah tersedia dari header.php
 try {
+    // Query pengecekan (Konversi ke MySQLi)
     $sql_check = "SELECT 
                     B.booking_id, 
                     RT.nama_tipe, 
                     RV.review_id
-                  FROM Bookings B
-                  JOIN Room_Types RT ON B.room_type_id = RT.room_type_id
-                  LEFT JOIN Reviews RV ON B.booking_id = RV.booking_id
+                  FROM bookings B
+                  JOIN room_types RT ON B.room_type_id = RT.room_type_id
+                  LEFT JOIN reviews RV ON B.booking_id = RV.booking_id
                   WHERE B.booking_id = ? AND B.user_id = ?";
     
     $stmt_check = $mysqli->prepare($sql_check);
