@@ -6,7 +6,7 @@ include 'includes/header.php'; // Memuat $mysqli dan auth
 
 // 2. Logika untuk mengambil data Tipe Kamar
 try {
-    $stmt = $mysqli->query("SELECT * FROM Room_Types ORDER BY harga_weekdays ASC");
+    $stmt = $mysqli->query("SELECT * FROM room_types ORDER BY harga_weekdays ASC");
     $room_types = $stmt->fetch_all(MYSQLI_ASSOC);
 } catch (Exception $e) {
     $room_types = []; 
@@ -105,7 +105,6 @@ try {
         line-height: 1.6;
         margin-bottom: 20px;
         display: -webkit-box;
-        -webkit-box-orient: vertical;
         overflow: hidden;
     }
 
