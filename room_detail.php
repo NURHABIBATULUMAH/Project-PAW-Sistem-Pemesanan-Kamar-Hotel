@@ -1,5 +1,7 @@
 <?php
-
+ini_set('display_errors', 1);
+ini_set('display_startup_errors', 1);
+error_reporting(E_ALL);
 
 // 1. Muat logika utama
 include_once 'core/booking_logic.php'; 
@@ -15,7 +17,7 @@ if (!$room_type_id) {
 
 // 3. Ambil Data Kamar dari Database
 try {
-    $sql = "SELECT * FROM Room_Types WHERE room_type_id = ?";
+    $sql = "SELECT * FROM room_types WHERE room_type_id = ?";
     $stmt = $mysqli->prepare($sql);
     $stmt->bind_param("i", $room_type_id);
     $stmt->execute();
