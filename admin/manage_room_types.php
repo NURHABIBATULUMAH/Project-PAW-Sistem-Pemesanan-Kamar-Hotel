@@ -1,8 +1,5 @@
 <?php
-// /admin/manage_room_types.php
-// VERSI KONVERSI KE MySQLi
-
-include '../includes/admin_header.php'; // Ini sudah memuat $mysqli
+include '../includes/admin_header.php'; 
 
 $message = '';
 $message_type = '';
@@ -15,7 +12,7 @@ try {
         mkdir($target_dir, 0755, true);
     }
 
-    // === LOGIKA PROSES FORM (CREATE & UPDATE) - Konversi ke MySQLi ===
+    // LOGIKA PROSES FORM (CREATE & UPDATE) - Konversi ke MySQLi
     if ($_SERVER["REQUEST_METHOD"] == "POST") {
         $nama_tipe = $_POST['nama_tipe'];
         $deskripsi_tipe = $_POST['deskripsi_tipe'];
@@ -27,7 +24,7 @@ try {
         
         $foto_nama = $foto_utama_lama; // Default: pakai foto lama
 
-        // 1. Proses File Upload (Logika tidak berubah)
+        // Proses File Upload (Logika tidak berubah)
         if ($foto_file && $foto_file['error'] == UPLOAD_ERR_OK) {
             $file_ext = strtolower(pathinfo($foto_file["name"], PATHINFO_EXTENSION));
             $allowed_types = ['jpg', 'jpeg', 'png'];
@@ -49,7 +46,7 @@ try {
             }
         }
         
-        // 2. Query DB (Konversi ke MySQLi)
+        // Query DB (Konversi ke MySQLi)
         if ($id_to_update) {
             // UPDATE
             $sql = "UPDATE room_types SET nama_tipe=?, deskripsi_tipe=?, harga_weekdays=?, harga_weekend=?, foto_utama=? WHERE room_type_id=?";
@@ -71,7 +68,7 @@ try {
         
     }
     
-    // === LOGIKA PROSES DELETE (Konversi ke MySQLi Transaction) ===
+    // LOGIKA PROSES DELETE (Konversi ke MySQLi Transaction) 
     if (isset($_GET['action']) && $_GET['action'] == 'delete' && isset($_GET['id'])) {
         $id_to_delete = $_GET['id'];
         
@@ -116,7 +113,7 @@ try {
         }
     }
 
-    // === LOGIKA PROSES EDIT (Konversi ke MySQLi) ===
+    // LOGIKA PROSES EDIT (Konversi ke MySQLi) 
     if (isset($_GET['action']) && $_GET['action'] == 'edit' && isset($_GET['id'])) {
         $id_to_edit = $_GET['id'];
         $sql_edit = "SELECT * FROM room_types WHERE room_type_id = ?";
