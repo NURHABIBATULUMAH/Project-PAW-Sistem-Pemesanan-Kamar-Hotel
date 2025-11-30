@@ -20,14 +20,14 @@ include_once __DIR__ . '/../core/auth.php';
         .nav-links {
             display: flex;
             align-items: center;
-            gap: 15px; /* Jarak antar item */
+            gap: 15px; 
         }
 
         /* Flex khusus untuk user + logout */
         .nav-user-logout {
             display: flex;
             align-items: center;
-            gap: 5px; /* jarak antara Hi dan Logout */
+            gap: 5px;
         }
 
         .nav-user-logout b {
