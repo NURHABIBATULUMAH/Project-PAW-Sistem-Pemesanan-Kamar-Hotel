@@ -1,4 +1,6 @@
 <?php
+// contact.php
+// VERSI: INFORMASI & KONTAK SAJA (TANPA DB)
 
 include 'config/database.php';
 include 'core/auth.php'; 
@@ -7,6 +9,7 @@ include 'includes/header.php';
 
 <style>
     .contact-header {
+        /* Gambar Background Header - Pastikan filenya ada atau ganti url gambar */
         background: linear-gradient(rgba(0,0,0,0.7), rgba(0,0,0,0.7)), url('assets/images/hotel_lobby.jpg');
         background-size: cover;
         background-position: center;
@@ -20,11 +23,11 @@ include 'includes/header.php';
         margin: 0 auto 50px auto;
         padding: 0 20px;
         display: grid;
-        grid-template-columns: 1fr 1fr; 
+        grid-template-columns: 1fr 1fr; /* Bagi 2 Kolom */
         gap: 50px;
     }
     .section-title {
-        color: #d4af37; 
+        color: #d4af37; /* Warna Emas */
         font-size: 24px;
         margin-bottom: 20px;
         border-bottom: 2px solid #eee;
@@ -65,6 +68,7 @@ include 'includes/header.php';
     }
     .text-box a:hover { text-decoration: underline; }
 
+    /* Kotak Tentang Kami di Kanan */
     .about-box {
         background: #f9f9f9;
         padding: 30px;
@@ -72,6 +76,7 @@ include 'includes/header.php';
         border-left: 5px solid #d4af37;
     }
 
+    /* Responsif HP */
     @media (max-width: 768px) {
         .contact-container { grid-template-columns: 1fr; }
     }
@@ -92,8 +97,9 @@ include 'includes/header.php';
             <div class="text-box">
                 <h4>Alamat Hotel</h4>
                 <p>Skyline Hotel & Resort<br>
-                Jl. Jendral Sudirman Kav. 52-53<br>
-                Jakarta Selatan, Indonesia 12190</p>
+                Jl. Raya Telang, Perumahan Telang Inda<br>
+                Telang, Kec. Kamal, Kabupaten Bangkalan<br>
+                Jawa Timur 69162</p>
             </div>
         </div>
 
@@ -118,16 +124,13 @@ include 'includes/header.php';
         </div>
         
         <div style="margin-top: 30px; border-radius: 10px; overflow: hidden; box-shadow: 0 5px 15px rgba(0,0,0,0.1);">
-             <iframe 
-                src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3966.303562629596!2d106.8059833!3d-6.2236356!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x2e69f1ec2422b0b3%3A0x394f97e26388353e!2sJenderal%20Sudirman!5e0!3m2!1sid!2sid!4v1680000000000!5m2!1sid!2sid" 
-                width="100%" height="250" style="border:0;" allowfullscreen="" loading="lazy">
-            </iframe>
+             <iframe src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d4105.800509531812!2d112.72213390728469!3d-7.128339925953903!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x2dd803dd886bbff5%3A0x9777ca139b28195d!2sUniversitas%20Trunojoyo%20Madura!5e0!3m2!1sid!2sid!4v1764358478138!5m2!1sid!2sid" width="600" height="450" style="border:0;" allowfullscreen="" loading="lazy" referrerpolicy="no-referrer-when-downgrade"></iframe>
         </div>
     </div>
 
         <br>
 
-        <h3 class="section-title">Jam Operasional</h3>
+        <h3 class="section-title">Jam Operasional</h3><br>
         <ul style="list-style: none; padding: 0; line-height: 2;">
             <li><strong>Check-In:</strong> Mulai pukul 14:00 WIB</li>
             <li><strong>Check-Out:</strong> Maksimal pukul 12:00 WIB</li>
