@@ -35,11 +35,11 @@ $sql = "SELECT
             RV.review_id,
             RV.rating
             
-        FROM Bookings B
-        JOIN Room_Types RT ON B.room_type_id = RT.room_type_id
-        LEFT JOIN Rooms R ON B.room_id = R.room_id
-        LEFT JOIN Payments P ON B.booking_code = P.booking_code
-        LEFT JOIN Reviews RV ON B.booking_id = RV.booking_id 
+        FROM bookings B
+        JOIN room_Types RT ON B.room_type_id = RT.room_type_id
+        LEFT JOIN rooms R ON B.room_id = R.room_id
+        LEFT JOIN payments P ON B.booking_code = P.booking_code
+        LEFT JOIN reviews RV ON B.booking_id = RV.booking_id 
         
         WHERE B.user_id = ?
         GROUP BY B.booking_code 
