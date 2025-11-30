@@ -1,13 +1,11 @@
 <?php
-
-include '../includes/admin_header.php'; 
+include '../includes/admin_header.php';
 
 $message = '';
 $message_type = '';
 $edit_fasilitas = null;
 
 try {
-    // === LOGIKA PROSES FORM (CREATE & UPDATE) 
     if ($_SERVER["REQUEST_METHOD"] == "POST") {
         $nama_fasilitas = $_POST['nama_fasilitas'];
         $deskripsi = $_POST['deskripsi'];
@@ -34,7 +32,6 @@ try {
         $message_type = 'success';
     }
     
-    // === LOGIKA PROSES DELETE 
     if (isset($_GET['action']) && $_GET['action'] == 'delete' && isset($_GET['id'])) {
         $id_to_delete = $_GET['id'];
         
@@ -46,8 +43,8 @@ try {
             
             $message = "Fasilitas berhasil dihapus.";
             $message_type = 'success';
-        } catch (Exception $e) { // Tangkap 'Exception' umum
-             if ($e->getCode() == 1451) { 
+        } catch (Exception $e) { 
+             if ($e->getCode() == 1451) {
                 $message = "Gagal menghapus! Fasilitas ini sudah pernah dipesan oleh pelanggan (ada di riwayat booking).";
             } else {
                 $message = "Error database: " . $e->getMessage();
@@ -56,7 +53,6 @@ try {
         }
     }
 
-    // === LOGIKA PROSES EDIT (MENGAMBIL DATA UNTUK FORM) 
     if (isset($_GET['action']) && $_GET['action'] == 'edit' && isset($_GET['id'])) {
         $id_to_edit = $_GET['id'];
         
@@ -68,11 +64,10 @@ try {
         $edit_fasilitas = $result_edit->fetch_assoc(); 
     }
     
-    // Ambil data utama (Daftar Fasilitas) 
     $all_fasilitas_result = $mysqli->query("SELECT * FROM fasilitas_tambahan ORDER BY nama_fasilitas ASC");
-    $all_fasilitas = $all_fasilitas_result->fetch_all(MYSQLI_ASSOC);
+    $all_fasilitas = $all_fasilitas_result->fetch_all(MYSQLI_ASSOC); 
 
-} catch (Exception $e) { 
+} catch (Exception $e) {
     $message = "Error saat memproses: " . $e->getMessage();
     $message_type = 'error';
 }
