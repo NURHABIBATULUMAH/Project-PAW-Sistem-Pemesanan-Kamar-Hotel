@@ -1,6 +1,6 @@
 <?php
 // /facilities.php
-// VERSI GAMBAR ASLI: Menggunakan gambar dari folder assets/images/
+// VERSI FIX: Sesuai Screenshot Nama File di Folder Assets
 
 include 'includes/header.php';
 
@@ -17,7 +17,7 @@ try {
 }
 ?>
 
-<div class="hero check-availability-form-container" style="background-image: linear-gradient(rgba(0,0,0,0.6), rgba(0,0,0,0.6)), url('assets/images/hotel_lobby.jpg'); height: 100px; display: flex; align-items: center; justify-content: center; text-align: center; color: white;">
+<div class="hero check-availability-form-container" style="background-image: linear-gradient(rgba(0,0,0,0.6), rgba(0,0,0,0.6)), url('assets/images/hotel_lobby.jpg'); height: 350px; display: flex; align-items: center; justify-content: center; text-align: center; color: white;">
     <div style="z-index: 2; max-width: 800px; padding: 20px;">
         <h1 style="font-size: 3rem; margin-bottom: 10px; font-weight: bold;">Layanan & Fasilitas Tambahan</h1>
         <p style="font-size: 1.2rem;">Tingkatkan pengalaman menginap Anda dengan layanan eksklusif kami.</p>
@@ -40,35 +40,40 @@ try {
         <?php else: ?>
             <?php foreach ($paid_facilities as $fas): ?>
                 <?php
-                    // === LOGIKA PENCOCOKAN GAMBAR ===
-                    // Default gambar jika tidak ada yang cocok
-                    $image_source = 'assets/images/hotel_lobby.jpg'; 
+                    // === LOGIKA PENCOCOKAN GAMBAR (UPDATED) ===
+                    $image_source = 'assets/images/hotel_lobby.jpg'; // Default
                     
                     $name_lower = strtolower($fas['nama_fasilitas']);
                     
-                    // Cek nama fasilitas di database, lalu pasangkan dengan file gambar kamu
-                    // Perhatikan ejaan nama file harus SAMA PERSIS dengan yang kamu upload
+                    // Cek berdasarkan kata kunci nama fasilitas vs nama file di folder kamu
                     
-                    if (strpos($name_lower, 'breakfast') !== false || strpos($name_lower, 'makan') !== false) {
-                        $image_source = 'assets/images/breakfeast.jpg'; // Sesuai nama file kamu
+                    if (strpos($name_lower, 'breakfast') !== false) {
+                        $image_source = 'assets/images/breakfeast.jpg'; // Sesuai screenshot
                     } 
                     elseif (strpos($name_lower, 'airport') !== false || strpos($name_lower, 'jemput') !== false) {
                         $image_source = 'assets/images/airport.jpg';
                     } 
-                    elseif (strpos($name_lower, 'romantic') !== false || strpos($name_lower, 'romantis') !== false) {
+                    elseif (strpos($name_lower, 'romantic') !== false) {
                         $image_source = 'assets/images/romantic.jpg';
                     } 
                     elseif (strpos($name_lower, 'massage') !== false || strpos($name_lower, 'spa') !== false) {
                         $image_source = 'assets/images/spa.jpg';
                     }
                     elseif (strpos($name_lower, 'bed') !== false) {
-                        // Kalau belum ada gambar bed, pakai icon atau gambar default
-                        // $image_source = 'assets/images/bed.jpg'; 
+                         $image_source = 'assets/images/bed.jpg'; // Sudah ada di folder
+                    }
+                    elseif (strpos($name_lower, 'late') !== false) {
+                         $image_source = 'assets/images/late.jpg'; // Sudah ada di folder
+                    }
+                    elseif (strpos($name_lower, 'fruit') !== false || strpos($name_lower, 'buah') !== false) {
+                         $image_source = 'assets/images/buah.jpg'; // Sudah ada di folder
+                    }
+                    elseif (strpos($name_lower, 'room service') !== false) {
+                         $image_source = 'assets/images/rs.jpg'; // Asumsi rs.jpg adalah Room Service
                     }
                 ?>
                 
                 <div class="facility-card">
-                    
                     <div class="facility-image-wrapper">
                         <img src="<?php echo $image_source; ?>" alt="<?php echo htmlspecialchars($fas['nama_fasilitas']); ?>">
                     </div>
@@ -95,45 +100,37 @@ try {
 </div>
 
 <style>
-    /* Mengatur agar kartu fasilitas rapi sejajar */
     .facilities-grid {
         display: grid;
-        grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); /* Responsif */
+        grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
         gap: 30px;
     }
-
     .facility-card {
         background: #fff;
         border: 1px solid #e0e0e0;
         border-radius: 10px;
-        overflow: hidden; /* Biar gambar gak keluar radius */
+        overflow: hidden;
         transition: transform 0.3s ease, box-shadow 0.3s ease;
         display: flex;
         flex-direction: column;
-        height: 100%; /* Biar tinggi kartu sama */
+        height: 100%;
     }
-
     .facility-card:hover {
         transform: translateY(-5px);
         box-shadow: 0 10px 20px rgba(0,0,0,0.1);
     }
-
-    /* Wrapper gambar agar ukurannya seragam */
     .facility-image-wrapper {
         width: 100%;
-        height: 200px; /* Tinggi gambar fix */
+        height: 200px;
         overflow: hidden;
         background-color: #eee;
     }
-
     .facility-image-wrapper img {
         width: 100%;
         height: 100%;
-        object-fit: cover; /* Gambar akan di-crop rapi mengisi kotak */
+        object-fit: cover;
         transition: transform 0.5s ease;
     }
-
-    /* Efek zoom saat hover */
     .facility-card:hover .facility-image-wrapper img {
         transform: scale(1.1);
     }
