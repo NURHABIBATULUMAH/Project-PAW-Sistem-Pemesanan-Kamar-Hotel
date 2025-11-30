@@ -596,22 +596,24 @@ footer {
         text-align: center;
     }
 }
+/* ======================================= */
+/* === 12. Halaman Riwayat Pesanan (booking_history.php) === */
+/* ======================================= */
 
-/* Halaman Riwayat Pesanan (booking_history.php) */
 /* Membuat area tabel menjadi kartu putih */
 .booking-history-list {
     background-color: var(--bg-white);
     border-radius: 8px;
     box-shadow: 0 4px 10px rgba(0,0,0,0.05);
     padding: 25px;
-    overflow-x: auto; 
+    overflow-x: auto; /* Scroll di HP */
 }
 
 /* Merapikan tabel */
 .history-table {
     width: 100%;
     border-collapse: collapse;
-    min-width: 800px; 
+    min-width: 800px; /* Lebar dipaksa agar bisa scroll */
 }
 
 .history-table th,
@@ -627,8 +629,10 @@ footer {
     font-weight: bold;
 }
 
+/* ============================== */
+/* === Badge Status Booking === */
+/* ============================== */
 
-/* Badge Status Booking  */
 .status {
     display: inline-block;
     padding: 4px 10px;
@@ -656,7 +660,11 @@ footer {
     background-color: #fee2e2;
     color: #b91c1c;
 }
+
+/* ============================== */
 /* === Tombol Aksi === */
+/* ============================== */
+
 .history-table .action-links {
     text-align: center;
 }
@@ -675,7 +683,7 @@ footer {
 }
 
 .btn-review:hover {
-    background-color: #16a085;
+    background-color: #16a085; /* Versi gelap */
 }
 
 /* Teks setelah ulasan dibuat */
@@ -692,21 +700,26 @@ footer {
     color: #555;
     line-height: 1.4;
 }
-/* Halaman Tulis Ulasan (leave_review.php) */
+/* ======================================= */
+/* === 14. Halaman Tulis Ulasan (leave_review.php) === */
+/* ======================================= */
+
 /* Trik untuk Bintang Rating */
 .rating {
     display: inline-block;
     border: none;
-    direction: rtl; 
+    direction: rtl; /* Balik urutan bintang agar hover-nya benar */
 }
+
 /* Sembunyikan radio button aslinya */
 .rating input[type="radio"] {
     display: none;
 }
 
 /* Style bintangnya (label) */
+/* GANTI DENGAN YANG BARU INI */
 .rating label {
-    display: inline-block; 
+    display: inline-block; /* <-- INI PERBAIKANNYA */
     font-size: 30px; 
     color: #ccc; 
     cursor: pointer;
@@ -736,8 +749,10 @@ footer {
     min-height: 120px;
     resize: vertical;
 }
+/* ======================================= */
+/* === Tombol Radio Gender Kustom === */
+/* ======================================= */
 
-/* Tombol Radio Gender Kustom */
 .gender-radio-group {
     display: flex;
     gap: 10px;
@@ -753,7 +768,7 @@ footer {
 .gender-radio-label {
     padding: 8px 16px;
     border: 1px solid #ccc;
-    border-radius: 20px; 
+    border-radius: 20px; /* Membuatnya bulat seperti pil */
     cursor: pointer;
     font-size: 14px;
     color: var(--secondary-color);
@@ -769,7 +784,7 @@ footer {
 
 /* PENTING: Style saat radio button-nya 'checked' */
 .gender-radio-group input[type="radio"]:checked + .gender-radio-label {
-    background-color: var(--primary-color);
+    background-color: var(--primary-color); /* Warna kuning (sesuai tema) */
     color: var(--dark-color);
     border-color: var(--primary-color);
     font-weight: bold;
@@ -777,6 +792,7 @@ footer {
 }
 
 .hero.check-availability-form-container {
+    /* PATH YANG BENAR: Keluar dari folder 'css' (../) lalu masuk ke 'images' */
     background-image: url('../images/hero-background.jpg'); 
     
     background-size: cover;          
@@ -838,23 +854,23 @@ footer {
     color: #28a745; 
 }
 
-/*BAGIAN TENTANG HOTEL*/
+/* ======= BAGIAN TENTANG HOTEL ======= */
 .hotel-info {
-    background-color: #f9f9f9;       
-    padding: 25px 30px;              
-    border-radius: 12px;             
-    box-shadow: 0 4px 15px rgba(0,0,0,0.08);
-    margin: 40px 0;                  
-    text-align: center;             
+    background-color: #f9f9f9;       /* background terang */
+    padding: 25px 30px;              /* jarak dalam */
+    border-radius: 12px;             /* sudut membulat */
+    box-shadow: 0 4px 15px rgba(0,0,0,0.08); /* bayangan lembut */
+    margin: 40px 0;                  /* jarak atas-bawah */
+    text-align: center;              /* teks di tengah */
 }
 
-/* H2 BAGIAN TENTANG HOTEL*/
+/* ===== H2 BAGIAN TENTANG HOTEL ===== */
 .hotel-info h2 {
-    font-size: 32px;              
-    color: #000000;              
-    text-align: center;           
-    font-weight: 700;         
-    margin-bottom: 20px;         
+    font-size: 32px;               /* ukuran lebih besar */
+    color: #000000;                /* biru gelap untuk menonjol */
+    text-align: center;            /* rata tengah */
+    font-weight: 700;              /* tebal */
+    margin-bottom: 20px;           /* jarak ke teks bawah */
     position: relative;
 }
 
@@ -864,15 +880,26 @@ footer {
     display: block;
     width: 80px;
     height: 4px;
-    background-color: #ffcb31;     
-    margin: 10px auto 0;           
+    background-color: #ffcb31;     /* warna aksen hijau toska */
+    margin: 10px auto 0;           /* di bawah judul, rata tengah */
     border-radius: 2px;
 }
 
 
-/* paragraf info*/
 .hotel-info p {
     font-size: 16px;
-    line-height: 1.7;              
-    color: #000000;                  
+    line-height: 1.7;                /* jarak antar baris */
+    color: #000000;                     /* teks abu gelap */
+}
+
+/* Kotak Nomor Kamar */
+.room-grid { display: flex; gap: 10px; flex-wrap: wrap; margin: 15px 0; }
+.room-box {
+    width: 45px; height: 45px;
+    border: 1px solid #ccc;
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer; font-weight: bold; border-radius: 5px;
+}
+.room-box.selected {
+    background-color: #007bff; color: white; border-color: #0056b3;
 }
