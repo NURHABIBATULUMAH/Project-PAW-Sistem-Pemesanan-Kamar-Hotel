@@ -41,30 +41,29 @@ try {
     }
 
     $sql_select = "SELECT 
-                        B.booking_code,
-                        B.tanggal_check_in,
-                        B.tanggal_check_out,
-                        B.status_booking,
-                        B.created_at,
-                        U.nama AS nama_pelanggan,
-                        RT.nama_tipe,
-                        
-                        -- Aggregasi data kamar dan harga
-                        GROUP_CONCAT(R.nomor_kamar ORDER BY R.nomor_kamar ASC SEPARATOR ', ') AS daftar_nomor_kamar,
-                        COUNT(B.room_id) AS jumlah_kamar_group,
-                        
-                        -- Data pembayaran (LEFT JOIN ke payments via booking_code)
-                        P.status_bayar,
-                        P.bukti_bayar,
-                        P.jumlah_bayar AS total_bayar_group
-                    FROM bookings B
-                    JOIN users U ON B.user_id = U.user_id
-                    JOIN room_types RT ON B.room_type_id = RT.room_type_id
-                    LEFT JOIN rooms R ON B.room_id = R.room_id
-                    LEFT JOIN payments P ON B.booking_code = P.booking_code /* KUNCI FIX */
-                    
-                    GROUP BY B.booking_code, U.nama, RT.nama_tipe, P.status_bayar, P.bukti_bayar 
-                    ORDER BY B.created_at DESC";
+                    B.booking_code,
+                    MIN(B.tanggal_check_in) AS tanggal_check_in,
+                    MIN(B.tanggal_check_out) AS tanggal_check_out,
+                    MIN(B.status_booking) AS status_booking,
+                    MIN(B.created_at) AS created_at,
+                    MIN(U.nama) AS nama_pelanggan,
+                    MIN(RT.nama_tipe) AS nama_tipe,
+
+                    GROUP_CONCAT(R.nomor_kamar ORDER BY R.nomor_kamar ASC SEPARATOR ', ') AS daftar_nomor_kamar,
+                    COUNT(B.room_id) AS jumlah_kamar_group,
+
+                    MIN(P.status_bayar) AS status_bayar,
+                    MIN(P.bukti_bayar) AS bukti_bayar,
+                    SUM(P.jumlah_bayar) AS total_bayar_group
+
+                FROM bookings B
+                JOIN users U ON B.user_id = U.user_id
+                JOIN room_types RT ON B.room_type_id = RT.room_type_id
+                LEFT JOIN rooms R ON B.room_id = R.room_id
+                LEFT JOIN payments P ON B.booking_code = P.booking_code
+
+                GROUP BY B.booking_code
+                ORDER BY created_at DESC";
                     
     $result_select = $mysqli->query($sql_select);
     $all_bookings = $result_select->fetch_all(MYSQLI_ASSOC);
@@ -135,7 +134,7 @@ include '../includes/admin_header.php';
                                 <?php echo date('d/m/Y', strtotime($booking['tanggal_check_out'])); ?>
                             </td>
 
-                            <td>Rp <?php echo number_format($booking['total_bayar_group'], 0, ',', '.'); ?></td>
+                            <td>Rp <?php echo number_format($booking['total_bayar_group'] ?? 0, 0, ',', '.'); ?></td>
                             
                             <td>
                                 <?php 
