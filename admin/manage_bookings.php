@@ -165,7 +165,7 @@ include '../includes/admin_header.php';
 
                             <td class="action-links">
                                 <?php
-                                $code = $booking['booking_code']; // Menggunakan code sebagai identifier
+                                $code = $booking['booking_code'];
                                 
                                 if ($booking['status_booking'] == 'Pending') {
                                 ?>
