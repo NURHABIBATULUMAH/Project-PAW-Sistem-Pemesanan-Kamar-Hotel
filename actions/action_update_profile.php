@@ -40,7 +40,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         );
         $stmt->execute();
         
-        // Update session name (jika diperlukan)
+        // mengupdate session name (jika diperlukan)
         if ($nama) {
             $_SESSION['user_name'] = $nama;
         }
