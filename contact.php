@@ -1,6 +1,4 @@
 <?php
-// contact.php
-// VERSI: INFORMASI & KONTAK SAJA (TANPA DB)
 
 include 'config/database.php';
 include 'core/auth.php'; 
@@ -9,7 +7,6 @@ include 'includes/header.php';
 
 <style>
     .contact-header {
-        /* Gambar Background Header - Pastikan filenya ada atau ganti url gambar */
         background: linear-gradient(rgba(0,0,0,0.7), rgba(0,0,0,0.7)), url('assets/images/hotel_lobby.jpg');
         background-size: cover;
         background-position: center;
@@ -23,11 +20,11 @@ include 'includes/header.php';
         margin: 0 auto 50px auto;
         padding: 0 20px;
         display: grid;
-        grid-template-columns: 1fr 1fr; /* Bagi 2 Kolom */
+        grid-template-columns: 1fr 1fr; 
         gap: 50px;
     }
     .section-title {
-        color: #d4af37; /* Warna Emas */
+        color: #d4af37;
         font-size: 24px;
         margin-bottom: 20px;
         border-bottom: 2px solid #eee;
@@ -68,7 +65,6 @@ include 'includes/header.php';
     }
     .text-box a:hover { text-decoration: underline; }
 
-    /* Kotak Tentang Kami di Kanan */
     .about-box {
         background: #f9f9f9;
         padding: 30px;
@@ -76,7 +72,6 @@ include 'includes/header.php';
         border-left: 5px solid #d4af37;
     }
 
-    /* Responsif HP */
     @media (max-width: 768px) {
         .contact-container { grid-template-columns: 1fr; }
     }

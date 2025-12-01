@@ -1,6 +1,4 @@
 <?php
-// /booking.php
-// VERSI FIX: MEMASTIKAN DATA ID KAMAR DIKIRIM KE ACTION
 
 include 'config/database.php';
 include 'core/auth.php'; 
