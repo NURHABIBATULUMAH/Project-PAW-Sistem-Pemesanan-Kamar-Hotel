@@ -6,7 +6,6 @@ $message_type = '';
 $edit_type = null;
 
 try {
-    // Tentukan folder upload (Tidak berubah)
     $target_dir = "../assets/images/rooms/";
     if (!file_exists($target_dir)) {
         mkdir($target_dir, 0755, true);

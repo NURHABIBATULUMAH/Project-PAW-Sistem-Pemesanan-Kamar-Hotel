@@ -1,5 +1,4 @@
 <?php
-// /includes/header.php
 
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
@@ -75,7 +74,6 @@ include_once __DIR__ . '/../core/auth.php';
                     <li><a href="<?php echo BASE_URL; ?>profile.php" class="btn-login">Profil</a></li>
                 <?php endif; ?>
 
-                <!-- USER + LOGOUT dalam satu li supaya berdekatan -->
                 <li class="nav-user-logout">
                     <b><?php echo htmlspecialchars(explode(' ', $_SESSION['user_name'])[0]); ?></b>
                     <span>|</span>
