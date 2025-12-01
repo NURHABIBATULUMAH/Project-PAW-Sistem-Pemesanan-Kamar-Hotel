@@ -5,7 +5,7 @@ include '../core/auth.php';
 
 require_login();
 
-// 1. Definisikan Folder Upload
+// mendefinisikan Folder Upload
 $target_dir = "../assets/uploads/";
 if (!file_exists($target_dir)) {
     mkdir($target_dir, 0755, true);
@@ -15,33 +15,32 @@ $redirect_url = '../booking_history.php';
 
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
 
-    // 2. TANGKAP DATA
+    // menangkap data
     $booking_code = $_POST['booking_code'] ?? null;
     $bank_name    = $_POST['bank_name'] ?? 'Transfer';
     $file_to_upload = $_FILES["bukti_bayar"];
 
-    // 3. VALIDASI INPUT UTAMA
+    // mengavalidasi inputan
     if (empty($booking_code)) {
         $_SESSION['error_message'] = "Terjadi kesalahan: Kode Booking tidak ditemukan.";
         header("Location: " . $redirect_url);
         exit;
     }
 
-    // 4. MEMASTIKAN FILE (ADA/TIDAK)
+    // memastikan file ada
     if (!isset($file_to_upload) || $file_to_upload['error'] == UPLOAD_ERR_NO_FILE) {
         $_SESSION['error_message'] = "Anda belum memilih file foto bukti bayar.";
         header("Location: " . $redirect_url);
         exit;
     }
 
-    // 5. VALIDASI UKURAN (MAX 2MB)
+    //mengavalidasi ukuran file dan tipe
     if ($file_to_upload["size"] > 2097152) {
         $_SESSION['error_message'] = "Ukuran file terlalu besar (Max 2MB). Silakan kompres gambar.";
         header("Location: " . $redirect_url);
         exit;
     }
 
-    // 6. VALIDASI EKSTENSI FILE
     $allowed_types = ['jpg', 'jpeg', 'png', 'gif', 'pdf'];
     $file_ext = strtolower(pathinfo($file_to_upload["name"], PATHINFO_EXTENSION));
 
@@ -51,19 +50,14 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         exit;
     }
 
-    // 7. PROSES RENAME & UPLOAD
-    // Nama file dibuat unik menggunakan kode booking + waktu
+    // rename dan upload
     $safe_code = preg_replace('/[^A-Za-z0-9\-]/', '', $booking_code); 
     $new_file_name = "bukti_" . $safe_code . "_" . time() . "." . $file_ext;
     $target_file_path = $target_dir . $new_file_name;
 
     if (move_uploaded_file($file_to_upload["tmp_name"], $target_file_path)) {
         
-        try {
-            // 8. UPDATE DATABASE
-            // Kita update tabel payments dimana 'booking_code' cocok.
-            // Ini akan otomatis mengupdate pembayaran untuk seluruh kamar di kode tersebut.
-            
+        try { // update database dengan MySQLi            
             $sql_update = "UPDATE payments 
                            SET metode_bayar = ?, 
                                bukti_bayar = ?, 
@@ -84,7 +78,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             exit;
 
         } catch (Exception $e) {
-            // Hapus file jika gagal update database agar tidak jadi sampah
+            // hapus file jika gagal update database agar tidak jadi sampah
             if (file_exists($target_file_path)) unlink($target_file_path);
 
             $_SESSION['error_message'] = "Error Database: " . $e->getMessage();
@@ -99,7 +93,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     }
 
 } else {
-    // Akses langsung tanpa POST
+    // akses tanpa post
     header("Location: " . $redirect_url);
     exit;
 }
