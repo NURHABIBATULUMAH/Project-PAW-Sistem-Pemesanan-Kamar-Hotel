@@ -1,4 +1,6 @@
 <?php
+// /booking.php
+// VERSI FIX: Variable Penampung ID Kamar Disamakan
 
 include 'config/database.php';
 include 'core/auth.php'; 
@@ -21,17 +23,16 @@ if (empty($data_user['nik']) || empty($data_user['phone']) || empty($data_user['
     exit;
 }
 
-// 2. TANGKAP DATA DARI FORM SEBELUMNYA (ROOM DETAIL)
+// 2. TANGKAP DATA DARI FORM SEBELUMNYA
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
     $room_type_id = $_POST['room_type_id'] ?? null;
     $check_in = $_POST['check_in'] ?? null;
     $check_out = $_POST['check_out'] ?? null;
     $jumlah_kamar = (int) ($_POST['jumlah_kamar'] ?? 0);
     
-    // [PENTING] Tangkap ID kamar dari room_detail.php
+    // [PENTING] Tangkap string ID kamar (misal: "1,5,7")
     $selected_ids_str = $_POST['selected_room_ids'] ?? ''; 
 
-    // Validasi: Jika kosong, kembalikan
     if (empty($selected_ids_str)) {
         echo "<script>alert('Harap pilih kamar terlebih dahulu!'); window.history.back();</script>";
         exit;
@@ -44,9 +45,9 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     exit;
 }
 
-// 3. AMBIL DATA TYPE KAMAR & HITUNG HARGA
+// 3. AMBIL DATA & HITUNG HARGA
 try {
-    // A. Info Tipe Kamar
+    // Info Tipe Kamar
     $sql_type = "SELECT nama_tipe, harga_weekdays, harga_weekend FROM room_types WHERE room_type_id = ?";
     $stmt_type = $mysqli->prepare($sql_type);
     $stmt_type->bind_param("i", $room_type_id);
@@ -56,7 +57,7 @@ try {
 
     if (!$room_type) { throw new Exception("Detail kamar tidak ditemukan."); }
 
-    // B. Ambil Nomor Kamar Asli (Untuk Tampilan Konfirmasi)
+    // Ambil Nomor Kamar Asli Untuk Tampilan
     $ids_safe = array_map('intval', $selected_room_ids);
     $ids_query = implode(',', $ids_safe);
     
@@ -69,7 +70,7 @@ try {
     }
     $display_nomor_kamar = implode(', ', $list_nomor_kamar);
 
-    // C. Hitung Durasi & Harga
+    // Hitung Harga
     $start_date = new DateTime($check_in);
     $end_date = new DateTime($check_out);
     $interval = DateInterval::createFromDateString('1 day');
@@ -92,7 +93,7 @@ try {
     $harga_satu_kamar_total = $subtotal_weekday + $subtotal_weekend;
     $total_harga_kamar = $harga_satu_kamar_total * $jumlah_kamar;
 
-    // D. Ambil Fasilitas Tambahan
+    // Fasilitas
     $sql_fas = "SELECT * FROM fasilitas_tambahan ORDER BY nama_fasilitas ASC";
     $fasilitas_result = $mysqli->query($sql_fas);
     $fasilitas_list = $fasilitas_result->fetch_all(MYSQLI_ASSOC);
@@ -109,16 +110,16 @@ try {
         <h2>Konfirmasi & Tambah Fasilitas</h2>
         <p>Pesanan untuk: <strong><?php echo htmlspecialchars($_SESSION['user_name'] ?? 'User'); ?></strong></p>
 
-        <form action="actions/action_booking.php" method="POST" id="booking-form">
+        <form action="actions/action_booking.php" method="POST">
             
             <input type="hidden" name="user_id" value="<?php echo $_SESSION['user_id']; ?>">
             <input type="hidden" name="room_type_id" value="<?php echo $room_type_id; ?>">
             <input type="hidden" name="check_in" value="<?php echo $check_in; ?>">
             <input type="hidden" name="check_out" value="<?php echo $check_out; ?>">
             <input type="hidden" name="jumlah_kamar" value="<?php echo $jumlah_kamar; ?>">
-            <input type="hidden" name="total_harga_kamar" value="<?php echo $total_harga_kamar; ?>">
             
-            <input type="hidden" name="selected_room_ids" value="<?php echo htmlspecialchars($selected_ids_str); ?>">
+            <input type="hidden" name="pilihan_kamar_str" value="<?php echo htmlspecialchars($selected_ids_str); ?>">
+            <input type="hidden" name="detail_nomor_kamar" value="<?php echo htmlspecialchars($display_nomor_kamar); ?>">
 
             <div class="booking-summary" style="background: #f9f9f9; padding: 20px; border-radius: 8px; border: 1px solid #ddd;">
                 <h4 style="margin-top: 0; border-bottom: 2px solid #ddd; padding-bottom: 10px;">Rincian Pesanan</h4>

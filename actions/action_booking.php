@@ -1,4 +1,6 @@
 <?php
+// /actions/action_booking.php
+// VERSI FINAL FIX: Menyimpan Room ID ke Database agar status terbaca sistem
 
 session_start();
 include '../config/database.php'; 
@@ -9,40 +11,40 @@ require_login();
 
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
 
-    // 1. AMBIL DATA
+    // 1. Ambil Data
     $user_id = $_POST['user_id'] ?? null;
     $room_type_id = $_POST['room_type_id'] ?? null;
     $check_in = $_POST['check_in'] ?? null;
     $check_out = $_POST['check_out'] ?? null;
     $jumlah_kamar = (int) ($_POST['jumlah_kamar'] ?? 0);
-    $total_harga_kamar_asli = (float) ($_POST['total_harga_kamar'] ?? 0); 
     $fasilitas_input = $_POST['fasilitas'] ?? [];
-    $selected_ids_str = $_POST['selected_room_ids'] ?? ''; 
-
-    // 2. PARSING ID KAMAR
-    $safe_ids = [];
-    if (!empty($selected_ids_str)) {
-        $ids_array = explode(',', $selected_ids_str);
-        foreach($ids_array as $id) {
-            $val = intval($id);
-            if($val > 0) $safe_ids[] = $val;
-        }
+    
+    // [FIX] Tangkap string ID kamar dan pecah jadi array
+    $pilihan_kamar_str = $_POST['pilihan_kamar_str'] ?? '';
+    $detail_nomor_kamar_str = $_POST['detail_nomor_kamar'] ?? ''; // Untuk kolom detail_kamar
+    
+    if (empty($pilihan_kamar_str)) {
+        $_SESSION['error_message'] = "Terjadi kesalahan: Nomor kamar tidak terpilih.";
+        header('Location: ../rooms.php'); exit;
     }
-
-    // 3. VALIDASI
+    
+    // Konversi "1,5,7" menjadi array [1, 5, 7]
+    $pilihan_kamar_ids = explode(',', $pilihan_kamar_str);
+    
+    // Validasi Keamanan
     if ($user_id != $_SESSION['user_id']) {
         $_SESSION['error_message'] = "Terjadi kesalahan keamanan.";
         header('Location: ../index.php'); exit;
     }
-    if ($jumlah_kamar <= 0 || count($safe_ids) != $jumlah_kamar) {
-         $_SESSION['error_message'] = "Jumlah kamar yang dipilih tidak sesuai.";
-         header('Location: ../rooms.php'); exit;
-    }
 
     try {
-        // 4. HITUNG TOTAL FASILITAS & TOTAL AKHIR
-        $total_harga_fasilitas_global = 0;
-        $fasilitas_data_global = []; 
+        // 2. Hitung Ulang Total Harga (Backend Validation)
+        $harga_satu_kamar = calculate_total_price($mysqli, $room_type_id, $check_in, $check_out);
+        $total_harga_semua_kamar = $harga_satu_kamar * $jumlah_kamar;
+        
+        // Hitung Fasilitas
+        $total_harga_fasilitas = 0;
+        $fasilitas_to_save = []; 
 
         if (!empty($fasilitas_input)) {
             $sql_fas = "SELECT fasilitas_id, harga FROM fasilitas_tambahan";
@@ -54,72 +56,101 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                 $qty = (int) $qty;
                 if ($qty > 0 && isset($harga_fasilitas_asli[$fasilitas_id])) {
                     $subtotal = (float) $harga_fasilitas_asli[$fasilitas_id] * $qty;
-                    $total_harga_fasilitas_global += $subtotal;
-                    $fasilitas_data_global[] = ['id' => $fasilitas_id, 'qty' => $qty, 'total' => $subtotal];
+                    $total_harga_fasilitas += $subtotal;
+                    $fasilitas_to_save[] = ['id' => $fasilitas_id, 'qty' => $qty, 'total' => $subtotal];
                 }
             }
         }
+        
+        $GRAND_TOTAL = $total_harga_semua_kamar + $total_harga_fasilitas;
 
-        // --- INI KUNCINYA: GRAND TOTAL & KODE TRANSAKSI ---
-        $GRAND_TOTAL = $total_harga_kamar_asli + $total_harga_fasilitas_global;
-        $kode_transaksi = "TRX-" . date('ymd') . rand(100, 999); // Contoh: TRX-251129888
+        // 3. GENERATE BOOKING CODE (Satu kode untuk rombongan)
+        $booking_code = 'TRX-' . date('ymd') . rand(100, 999);
 
-        // Kita hitung harga pecahan per kamar agar data di tabel bookings rapi
-        $harga_per_kamar = $GRAND_TOTAL / $jumlah_kamar; 
-
-        // 5. MULAI SIMPAN DATA
+        // 4. MULAI TRANSAKSI
         $mysqli->begin_transaction();
 
-        // A. LOOPING INSERT KAMAR (Supaya nomor kamar tersimpan spesifik)
-        foreach ($safe_ids as $current_room_id) {
+        // 5. INSERT DATA BOOKING (LOOPING per Kamar)
+        // [PENTING] Kita insert 1 baris per kamar agar 'room_id' tersimpan
+        // dan sistem bisa mendeteksi kamar itu 'Unavailable' di tanggal tsb.
+        
+        // Harga per baris booking (Harga 1 kamar + (Fasilitas / Jumlah Kamar))
+        // Kita simpan Grand Total di baris pertama saja atau dibagi rata, 
+        // tapi untuk Payment nanti pakai Booking Code, jadi aman.
+        
+        // Strategi: Simpan harga kamar di masing-masing row. Simpan harga fasilitas di table fasilitas.
+        
+        $booking_ids_created = [];
+        
+        // Ambil array nomor kamar (text) untuk disimpan di detail_kamar
+        $nomor_kamar_array = explode(',', str_replace(' ', '', $detail_nomor_kamar_str)); // Bersihkan spasi
 
-            // Ambil Nomor Kamar
-            $nomor_kamar_str = '-';
-            $q_cek = $mysqli->query("SELECT nomor_kamar FROM rooms WHERE room_id = $current_room_id");
-            if ($r = $q_cek->fetch_assoc()) {
-                $nomor_kamar_str = $r['nomor_kamar'];
-            }
+        $counter = 0;
+        foreach ($pilihan_kamar_ids as $room_id_fisik) {
+            $nomor_kamar_ini = $nomor_kamar_array[$counter] ?? '-';
+            
+            // Harga per booking row = Harga 1 kamar saja (Fasilitas disimpan terpisah)
+            // Tapi total_bayar di tabel bookings biasanya total keseluruhan.
+            // Agar tidak double counting saat sum, kita taruh Total Fasilitas di baris pertama saja,
+            // atau bagi rata. Mari kita simpan Harga Kamar saja, nanti Payment yang catat total bayar.
+            // TAPI: Struktur tabel bookings Anda punya 'total_bayar'. 
+            // Kita bagi rata saja biar rapi.
+            
+            $share_fasilitas = $total_harga_fasilitas / count($pilihan_kamar_ids);
+            $total_per_row = $harga_satu_kamar + $share_fasilitas;
 
-            // INSERT BOOKING (Pakai booking_code)
             $sql_booking = "INSERT INTO bookings (booking_code, user_id, room_type_id, room_id, jumlah_kamar, detail_kamar, tanggal_check_in, tanggal_check_out, total_bayar, status_booking) 
                             VALUES (?, ?, ?, ?, 1, ?, ?, ?, ?, 'Confirmed')";
             
             $stmt_booking = $mysqli->prepare($sql_booking);
-            // Binding: s(code), i, i, i, s, s, s, d
-            $stmt_booking->bind_param("siiisssd", $kode_transaksi, $user_id, $room_type_id, $current_room_id, $nomor_kamar_str, $check_in, $check_out, $harga_per_kamar);
+            // "siiisssd"
+            $stmt_booking->bind_param("siiisssd", $booking_code, $user_id, $room_type_id, $room_id_fisik, $nomor_kamar_ini, $check_in, $check_out, $total_per_row);
             $stmt_booking->execute();
-            $last_id = $mysqli->insert_id;
-
-            // Simpan Fasilitas (Pecah per kamar untuk log)
-            if (!empty($fasilitas_data_global)) {
-                $sql_fas_insert = "INSERT INTO booking_fasilitas (booking_id, fasilitas_id, jumlah, total_harga_fasilitas) VALUES (?, ?, ?, ?)";
-                $stmt_fas_insert = $mysqli->prepare($sql_fas_insert);
-                foreach ($fasilitas_data_global as $fas) {
-                    $qty_split = max(1, floor($fas['qty'] / $jumlah_kamar)); 
-                    $total_split = $fas['total'] / $jumlah_kamar;
-                    $stmt_fas_insert->bind_param("iiid", $last_id, $fas['id'], $qty_split, $total_split);
-                    $stmt_fas_insert->execute();
-                }
-            }
+            
+            $booking_ids_created[] = $mysqli->insert_id; // Simpan ID baru
+            $counter++;
         }
 
-        // B. INSERT PAYMENT (CUKUP SEKALI SAJA DI LUAR LOOP)
-        // Kita simpan TOTAL SEMUANYA disini, diikat dengan booking_code
+        // 6. INSERT PAYMENTS (Satu Payment untuk Satu Kode Booking)
         $sql_payment = "INSERT INTO payments (booking_code, jumlah_bayar, status_bayar) VALUES (?, ?, 'Pending')";
         $stmt_payment = $mysqli->prepare($sql_payment);
-        $stmt_payment->bind_param("sd", $kode_transaksi, $GRAND_TOTAL);
+        $stmt_payment->bind_param("sd", $booking_code, $GRAND_TOTAL);
         $stmt_payment->execute();
 
+        // 7. INSERT FASILITAS (Dikaitkan ke salah satu booking ID saja, atau semua. Kita kaitkan ke ID pertama)
+        if (!empty($fasilitas_to_save) && !empty($booking_ids_created)) {
+            $main_booking_id = $booking_ids_created[0]; // ID pertama
+            
+            $sql_fas_insert = "INSERT INTO booking_fasilitas (booking_id, fasilitas_id, jumlah, total_harga_fasilitas) VALUES (?, ?, ?, ?)";
+            $stmt_fas_insert = $mysqli->prepare($sql_fas_insert);
+            
+            foreach ($fasilitas_to_save as $fas) {
+                $stmt_fas_insert->bind_param("iiid", $main_booking_id, $fas['id'], $fas['qty'], $fas['total']);
+                $stmt_fas_insert->execute();
+            }
+        }
+        
+        // 8. UPDATE STATUS KAMAR FISIK (Agar 'Unavailable' di dashboard admin)
+        // Sebenarnya sistem filter tanggal sudah otomatis, tapi kita update status fisik juga
+        $placeholders = implode(',', array_fill(0, count($pilihan_kamar_ids), '?'));
+        $types = str_repeat('i', count($pilihan_kamar_ids)); 
+        
+        $sql_update_fisik = "UPDATE rooms SET status = 'Unavailable' WHERE room_id IN ($placeholders)";
+        $stmt_fisik = $mysqli->prepare($sql_update_fisik);
+        $stmt_fisik->bind_param($types, ...$pilihan_kamar_ids);
+        $stmt_fisik->execute();
+        
+        // COMMIT
         $mysqli->commit();
 
-        $_SESSION['success_message'] = "Booking Berhasil! Kode Transaksi: " . $kode_transaksi;
+        $_SESSION['success_message'] = "Booking Berhasil! Silakan segera upload bukti pembayaran.";
         header('Location: ../booking_history.php'); 
         exit;
 
     } catch (Exception $e) {
-        $mysqli->rollback();
-        $_SESSION['error_message'] = "Gagal: " . $e->getMessage();
-        header('Location: ../rooms.php'); 
+        if ($mysqli->errno) $mysqli->rollback();
+        $_SESSION['error_message'] = "Terjadi kesalahan: " . $e->getMessage();
+        header('Location: ../booking.php'); 
         exit;
     }
 } else {
