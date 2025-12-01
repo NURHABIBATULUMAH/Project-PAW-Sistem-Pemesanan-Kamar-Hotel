@@ -11,12 +11,11 @@ $message_type = '';
 $edit_room = null;
 
 try {
-    // === 1. LOGIKA PROSES DELETE (AMAN & CERDAS) ===
+    // LOGIKA PROSES DELETE 
     if (isset($_GET['action']) && $_GET['action'] == 'delete' && isset($_GET['id'])) {
         $id_to_delete = $_GET['id'];
         
-        // Cek apakah ada tamu AKTIF atau AKAN DATANG
-        // Kita gunakan tanggal hari ini sebagai patokan
+        // Menggunakan tanggal hari ini sebagai patokan
         $today = date('Y-m-d');
         
         // Cari booking yang statusnya Aktif DAN belum check-out
@@ -51,7 +50,7 @@ try {
         }
     }
 
-    // === 2. LOGIKA PROSES CREATE & UPDATE ===
+    // LOGIKA PROSES CREATE & UPDATE
     if ($_SERVER["REQUEST_METHOD"] == "POST") {
         $room_type_id = $_POST['room_type_id'];
         $nomor_kamar = $_POST['nomor_kamar'];
