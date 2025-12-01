@@ -5,9 +5,9 @@ require_login();
 $user_id = $_SESSION['user_id'];
 $booking_id = $_GET['booking_id'] ?? 0;
 
-// $mysqli sudah tersedia dari header.php
+
 try {
-    // Query pengecekan (Konversi ke MySQLi)
+
     $sql_check = "SELECT 
                     B.booking_id, 
                     RT.nama_tipe, 

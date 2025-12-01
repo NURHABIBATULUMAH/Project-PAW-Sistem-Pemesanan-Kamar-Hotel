@@ -1,6 +1,6 @@
 <?php
 // /booking.php
-// VERSI FIX: Variable Penampung ID Kamar Disamakan
+
 
 include 'config/database.php';
 include 'core/auth.php'; 
