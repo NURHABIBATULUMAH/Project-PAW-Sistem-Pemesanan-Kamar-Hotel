@@ -1,6 +1,4 @@
 <?php
-// /actions/action_booking.php
-// VERSI FINAL FIX: Menyimpan Room ID ke Database agar status terbaca sistem
 
 session_start();
 include '../config/database.php'; 
@@ -19,26 +17,24 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     $jumlah_kamar = (int) ($_POST['jumlah_kamar'] ?? 0);
     $fasilitas_input = $_POST['fasilitas'] ?? [];
     
-    // [FIX] Tangkap string ID kamar dan pecah jadi array
+    // Tangkap string ID kamar dan pecah jadi array
     $pilihan_kamar_str = $_POST['pilihan_kamar_str'] ?? '';
-    $detail_nomor_kamar_str = $_POST['detail_nomor_kamar'] ?? ''; // Untuk kolom detail_kamar
+    $detail_nomor_kamar_str = $_POST['detail_nomor_kamar'] ?? ''; 
     
     if (empty($pilihan_kamar_str)) {
         $_SESSION['error_message'] = "Terjadi kesalahan: Nomor kamar tidak terpilih.";
         header('Location: ../rooms.php'); exit;
     }
     
-    // Konversi "1,5,7" menjadi array [1, 5, 7]
     $pilihan_kamar_ids = explode(',', $pilihan_kamar_str);
     
-    // Validasi Keamanan
     if ($user_id != $_SESSION['user_id']) {
         $_SESSION['error_message'] = "Terjadi kesalahan keamanan.";
         header('Location: ../index.php'); exit;
     }
 
     try {
-        // 2. Hitung Ulang Total Harga (Backend Validation)
+        // 2. Hitung Ulang Total Harga
         $harga_satu_kamar = calculate_total_price($mysqli, $room_type_id, $check_in, $check_out);
         $total_harga_semua_kamar = $harga_satu_kamar * $jumlah_kamar;
         
@@ -64,37 +60,19 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         
         $GRAND_TOTAL = $total_harga_semua_kamar + $total_harga_fasilitas;
 
-        // 3. GENERATE BOOKING CODE (Satu kode untuk rombongan)
+        // 3. GENERATE BOOKING CODE
         $booking_code = 'TRX-' . date('ymd') . rand(100, 999);
 
         // 4. MULAI TRANSAKSI
         $mysqli->begin_transaction();
 
-        // 5. INSERT DATA BOOKING (LOOPING per Kamar)
-        // [PENTING] Kita insert 1 baris per kamar agar 'room_id' tersimpan
-        // dan sistem bisa mendeteksi kamar itu 'Unavailable' di tanggal tsb.
-        
-        // Harga per baris booking (Harga 1 kamar + (Fasilitas / Jumlah Kamar))
-        // Kita simpan Grand Total di baris pertama saja atau dibagi rata, 
-        // tapi untuk Payment nanti pakai Booking Code, jadi aman.
-        
-        // Strategi: Simpan harga kamar di masing-masing row. Simpan harga fasilitas di table fasilitas.
-        
+        // 5. INSERT DATA BOOKING
         $booking_ids_created = [];
-        
-        // Ambil array nomor kamar (text) untuk disimpan di detail_kamar
-        $nomor_kamar_array = explode(',', str_replace(' ', '', $detail_nomor_kamar_str)); // Bersihkan spasi
+        $nomor_kamar_array = explode(',', str_replace(' ', '', $detail_nomor_kamar_str)); 
 
         $counter = 0;
         foreach ($pilihan_kamar_ids as $room_id_fisik) {
             $nomor_kamar_ini = $nomor_kamar_array[$counter] ?? '-';
-            
-            // Harga per booking row = Harga 1 kamar saja (Fasilitas disimpan terpisah)
-            // Tapi total_bayar di tabel bookings biasanya total keseluruhan.
-            // Agar tidak double counting saat sum, kita taruh Total Fasilitas di baris pertama saja,
-            // atau bagi rata. Mari kita simpan Harga Kamar saja, nanti Payment yang catat total bayar.
-            // TAPI: Struktur tabel bookings Anda punya 'total_bayar'. 
-            // Kita bagi rata saja biar rapi.
             
             $share_fasilitas = $total_harga_fasilitas / count($pilihan_kamar_ids);
             $total_per_row = $harga_satu_kamar + $share_fasilitas;
@@ -103,23 +81,22 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                             VALUES (?, ?, ?, ?, 1, ?, ?, ?, ?, 'Confirmed')";
             
             $stmt_booking = $mysqli->prepare($sql_booking);
-            // "siiisssd"
             $stmt_booking->bind_param("siiisssd", $booking_code, $user_id, $room_type_id, $room_id_fisik, $nomor_kamar_ini, $check_in, $check_out, $total_per_row);
             $stmt_booking->execute();
             
-            $booking_ids_created[] = $mysqli->insert_id; // Simpan ID baru
+            $booking_ids_created[] = $mysqli->insert_id; 
             $counter++;
         }
 
-        // 6. INSERT PAYMENTS (Satu Payment untuk Satu Kode Booking)
+        // 6. INSERT PAYMENTS
         $sql_payment = "INSERT INTO payments (booking_code, jumlah_bayar, status_bayar) VALUES (?, ?, 'Pending')";
         $stmt_payment = $mysqli->prepare($sql_payment);
         $stmt_payment->bind_param("sd", $booking_code, $GRAND_TOTAL);
         $stmt_payment->execute();
 
-        // 7. INSERT FASILITAS (Dikaitkan ke salah satu booking ID saja, atau semua. Kita kaitkan ke ID pertama)
+        // 7. INSERT FASILITAS
         if (!empty($fasilitas_to_save) && !empty($booking_ids_created)) {
-            $main_booking_id = $booking_ids_created[0]; // ID pertama
+            $main_booking_id = $booking_ids_created[0];
             
             $sql_fas_insert = "INSERT INTO booking_fasilitas (booking_id, fasilitas_id, jumlah, total_harga_fasilitas) VALUES (?, ?, ?, ?)";
             $stmt_fas_insert = $mysqli->prepare($sql_fas_insert);
@@ -130,15 +107,10 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             }
         }
         
-        // 8. UPDATE STATUS KAMAR FISIK (Agar 'Unavailable' di dashboard admin)
-        // Sebenarnya sistem filter tanggal sudah otomatis, tapi kita update status fisik juga
-        $placeholders = implode(',', array_fill(0, count($pilihan_kamar_ids), '?'));
-        $types = str_repeat('i', count($pilihan_kamar_ids)); 
-        
-        $sql_update_fisik = "UPDATE rooms SET status = 'Unavailable' WHERE room_id IN ($placeholders)";
-        $stmt_fisik = $mysqli->prepare($sql_update_fisik);
-        $stmt_fisik->bind_param($types, ...$pilihan_kamar_ids);
-        $stmt_fisik->execute();
+        // [PERUBAHAN DISINI]
+        // KITA HAPUS BAGIAN UPDATE STATUS KAMAR JADI UNAVAILABLE.
+        // Biarkan kamar tetap 'Available' secara fisik, tapi sistem booking akan menolaknya
+        // karena ID kamar sudah terdaftar di tabel bookings pada tanggal tersebut.
         
         // COMMIT
         $mysqli->commit();
