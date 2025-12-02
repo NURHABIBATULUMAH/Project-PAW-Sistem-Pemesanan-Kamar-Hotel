@@ -26,7 +26,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 
     try {
         
-        $sql_check = "SELECT B.bookings_id 
+        $sql_check = "SELECT B.booking_id 
                       FROM bookings B 
                       LEFT JOIN reviews RV ON B.booking_id = RV.booking_id
                       WHERE B.booking_id = ? AND B.user_id = ? AND RV.review_id IS NULL";
