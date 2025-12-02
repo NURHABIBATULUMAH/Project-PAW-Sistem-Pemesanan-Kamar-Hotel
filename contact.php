@@ -161,7 +161,7 @@ include 'includes/header.php';
 
     <h3 class="section-title">Jam Operasional</h3><br>
     <ul style="list-style: none; padding: 0; line-height: 2;">
-        <li><strong>Check-In:</strong> Mulai pukul 14:00 WIB</li>
+        <li><strong>Check-In :</strong> Mulai pukul 14:00</li>
         <li><strong>Check-Out:</strong> Maksimal pukul 12:00 WIB</li>
         <li><strong>Layanan Resepsionis:</strong> 24 Jam</li>
         <li><strong>Room Service:</strong> 24 Jam</li>
