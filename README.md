@@ -15,7 +15,7 @@ Link Website Yang Sudah di Hosting: https://hotels.gajahweb.tech/index.php
 
 **Email : cust1@gmail.com**
 
-**Password : cust**
+**Password : cust1**
 
 Note: Bisa melakukan registrasi jika ingin memiliki akun sendiri
 
