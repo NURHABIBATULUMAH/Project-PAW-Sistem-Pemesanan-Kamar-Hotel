@@ -15,13 +15,26 @@ try {
     if (isset($_GET['action']) && $_GET['action'] == 'delete' && isset($_GET['id'])) {
         $id_to_delete = $_GET['id'];
         
-        // Cek apakah ada tamu aktif sebelum hapus (Biar aman)
-        $cek_tamu = $mysqli->query("SELECT * FROM bookings WHERE room_id = $id_to_delete AND status_booking IN ('Confirmed','Paid')");
+        // Menggunakan tanggal hari ini sebagai patokan
+        $today = date('Y-m-d');
         
-        if ($cek_tamu->num_rows > 0) {
+        // Cari booking yang statusnya Aktif DAN belum check-out
+        $sql_cek = "SELECT booking_code FROM bookings 
+                    WHERE room_id = ? 
+                    AND status_booking IN ('Confirmed', 'Paid', 'Pending') 
+                    AND tanggal_check_out >= ?";
+                    
+        $stmt_cek = $mysqli->prepare($sql_cek);
+        $stmt_cek->bind_param("is", $id_to_delete, $today);
+        $stmt_cek->execute();
+        $result_cek = $stmt_cek->get_result();
+        
+        if ($result_cek->num_rows > 0) {
+            // Jika ada tamu aktif/future -> Blokir Penghapusan
             $message = "Gagal hapus! Kamar sedang ada penghuninya atau terikat pesanan aktif.";
             $message_type = 'error';
         } else {
+            // Jika aman (kosong atau history masa lalu) -> Hapus
             try {
                 $sql_delete = "DELETE FROM rooms WHERE room_id = ?";
                 $stmt_delete = $mysqli->prepare($sql_delete);
@@ -37,7 +50,7 @@ try {
         }
     }
 
-    // === 2. LOGIKA PROSES CREATE & UPDATE ===
+    // LOGIKA PROSES CREATE & UPDATE
     if ($_SERVER["REQUEST_METHOD"] == "POST") {
         $room_type_id = $_POST['room_type_id'];
         $nomor_kamar = $_POST['nomor_kamar'];
@@ -73,12 +86,12 @@ try {
         $edit_room = $result_edit->fetch_assoc();
     }
 
-    // AMBIL DATA UTAMA (DENGAN CEK PENGHUNI)
+    // AMBIL DATA UTAMA
     // Query 1: Ambil Tipe Kamar (untuk dropdown)
     $all_types_result = $mysqli->query("SELECT * FROM room_types");
     $all_types = $all_types_result->fetch_all(MYSQLI_ASSOC);
     
-    // Query 2: Ambil Daftar Kamar + Status Huni (Subquery Pintar)
+    // Query 2: Ambil Daftar Kamar + Info Penghuni
     $today = date('Y-m-d');
     $sql_rooms = "SELECT rooms.*, room_types.nama_tipe,
                   (
@@ -136,11 +149,12 @@ try {
         </div>
 
         <div class="form-group">
-            <label for="status">Status Kamar (Fisik)</label>
+            <label for="status">Status Kamar</label>
             <select id="status" name="status" required>
                 <option value="Available" <?php echo (isset($edit_room) && $edit_room['status'] == 'Available') ? 'selected' : ''; ?>>Available (Siap Jual)</option>
-                <option value="Under Maintenance" <?php echo (isset($edit_room) && $edit_room['status'] == 'Under Maintenance') ? 'selected' : ''; ?>>Under Maintenance (Rusak)</option>
-                </select>
+                <option value="Under Maintenance" <?php echo (isset($edit_room) && $edit_room['status'] == 'Under Maintenance') ? 'selected' : ''; ?>>Under Maintenance (Rusak/Perbaikan)</option>
+            </select>
+            <small style="color: #666; font-size: 12px;">*Status "Unavailable" diatur otomatis oleh sistem saat ada tamu.</small>
         </div>
         
         <div class="form-group"></div> 
@@ -155,7 +169,6 @@ try {
 
 <div class="admin-card">
     <h3>Daftar Kamar & Status Penghuni</h3>
-    <p>Lihat stok kamar dan apakah ada tamu yang sedang menginap.</p>
     
     <div style="overflow-x: auto;">
         <table class="admin-table">
@@ -176,6 +189,8 @@ try {
                     <td>
                         <?php if($room['status'] == 'Available'): ?>
                              <span style="color:green; font-weight:bold;">✔ Siap Jual</span>
+                        <?php elseif($room['status'] == 'Unavailable'): ?>
+                             <span style="color:orange; font-weight:bold;">⚠ Sedang Dipakai</span>
                         <?php else: ?>
                              <span style="color:red; font-weight:bold;">🛠 Perbaikan</span>
                         <?php endif; ?>

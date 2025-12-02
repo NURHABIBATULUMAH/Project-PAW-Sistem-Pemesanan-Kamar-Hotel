@@ -1,6 +1,6 @@
 <?php
 // /booking_history.php
-// VERSI FINAL: KOLOM REVIEW ADA + REKENING LENGKAP + GROUP BOOKING
+
 
 ini_set('display_errors', 1);
 error_reporting(E_ALL);
@@ -11,7 +11,6 @@ include 'core/auth.php';
 require_login();
 $user_id = $_SESSION['user_id'];
 
-// === QUERY KHUSUS (GROUP BOOKING + REVIEW) ===
 $sql = "SELECT 
             B.booking_code,
             B.booking_id,
@@ -21,17 +20,17 @@ $sql = "SELECT
             B.created_at, 
             RT.nama_tipe,
             
-            -- DATA GABUNGAN
+            
             GROUP_CONCAT(R.nomor_kamar ORDER BY R.nomor_kamar ASC SEPARATOR ', ') AS daftar_nomor_kamar,
             COUNT(B.room_id) AS jumlah_kamar, 
             
-            -- DATA PEMBAYARAN
+
             P.status_bayar,
             P.bukti_bayar,
             P.metode_bayar,
             P.jumlah_bayar AS total_bayar_group,
             
-            -- DATA REVIEW
+    
             RV.review_id,
             RV.rating
             
@@ -57,7 +56,7 @@ try {
     $riwayat_bookings = [];
 }
 
-// Bersihkan pesan session
+
 $success_message = $_SESSION['success_message'] ?? '';
 $error_message = $_SESSION['error_message'] ?? '';
 unset($_SESSION['success_message'], $_SESSION['error_message']);
