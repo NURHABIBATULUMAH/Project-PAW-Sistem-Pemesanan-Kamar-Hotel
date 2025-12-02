@@ -104,7 +104,6 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         }
 
         // B. INSERT PAYMENT (CUKUP SEKALI SAJA DI LUAR LOOP)
-        // Kita simpan TOTAL SEMUANYA disini, diikat dengan booking_code
         $sql_payment = "INSERT INTO payments (booking_code, jumlah_bayar, status_bayar) VALUES (?, ?, 'Pending')";
         $stmt_payment = $mysqli->prepare($sql_payment);
         $stmt_payment->bind_param("sd", $kode_transaksi, $GRAND_TOTAL);
