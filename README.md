@@ -6,12 +6,17 @@ Aplikasi berbasis web untuk melakukan pemesanan kamar hotel secara online. Siste
 Link Website Yang Sudah di Hosting: https://hotels.gajahweb.tech/index.php
 
 **Login sebagai admin:**
+
 **Email : adminfix@gmail.com**
+
 **Password : adminfix**
 
 **Login sebagai customers:**
+
 **Email : cust1@gmail.com**
+
 **Password : cust**
+
 Note: Bisa melakukan registrasi jika ingin memiliki akun sendiri
 
 ## Teknologi yang Digunakan
