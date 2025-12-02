@@ -7,9 +7,8 @@ include '../core/booking_logic.php';
 
 require_login(); 
 
-if ($_SERVER["REQUEST_METHOD"] == "POST") {
+if ($_SERVER["REQUEST_METHOD"] = "POST") {
 
-    // 1. AMBIL DATA
     $user_id = $_POST['user_id'] ?? null;
     $room_type_id = $_POST['room_type_id'] ?? null;
     $check_in = $_POST['check_in'] ?? null;
@@ -19,7 +18,6 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     $fasilitas_input = $_POST['fasilitas'] ?? [];
     $selected_ids_str = $_POST['selected_room_ids'] ?? ''; 
 
-    // 2. PARSING ID KAMAR
     $safe_ids = [];
     if (!empty($selected_ids_str)) {
         $ids_array = explode(',', $selected_ids_str);
@@ -29,7 +27,6 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         }
     }
 
-    // 3. VALIDASI
     if ($user_id != $_SESSION['user_id']) {
         $_SESSION['error_message'] = "Terjadi kesalahan keamanan.";
         header('Location: ../index.php'); exit;
@@ -40,7 +37,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     }
 
     try {
-        // 4. HITUNG TOTAL FASILITAS & TOTAL AKHIR
+
         $total_harga_fasilitas_global = 0;
         $fasilitas_data_global = []; 
 
@@ -60,38 +57,30 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             }
         }
 
-        // --- INI KUNCINYA: GRAND TOTAL & KODE TRANSAKSI ---
         $GRAND_TOTAL = $total_harga_kamar_asli + $total_harga_fasilitas_global;
-        $kode_transaksi = "TRX-" . date('ymd') . rand(100, 999); // Contoh: TRX-251129888
+        $kode_transaksi = "TRX-" . date('ymd') . rand(100, 999);
 
-        // Kita hitung harga pecahan per kamar agar data di tabel bookings rapi
         $harga_per_kamar = $GRAND_TOTAL / $jumlah_kamar; 
 
-        // 5. MULAI SIMPAN DATA
         $mysqli->begin_transaction();
 
-        // A. LOOPING INSERT KAMAR (Supaya nomor kamar tersimpan spesifik)
         foreach ($safe_ids as $current_room_id) {
 
-            // Ambil Nomor Kamar
             $nomor_kamar_str = '-';
             $q_cek = $mysqli->query("SELECT nomor_kamar FROM rooms WHERE room_id = $current_room_id");
             if ($r = $q_cek->fetch_assoc()) {
                 $nomor_kamar_str = $r['nomor_kamar'];
             }
 
-            // INSERT BOOKING (Pakai booking_code)
             $sql_booking = "INSERT INTO bookings (booking_code, user_id, room_type_id, room_id, jumlah_kamar, detail_kamar, tanggal_check_in, tanggal_check_out, total_bayar, status_booking) 
                             VALUES (?, ?, ?, ?, 1, ?, ?, ?, ?, 'Confirmed')";
             
             $stmt_booking = $mysqli->prepare($sql_booking);
-            // Binding: s(code), i, i, i, s, s, s, d
             $stmt_booking->bind_param("siiisssd", $kode_transaksi, $user_id, $room_type_id, $current_room_id, $nomor_kamar_str, $check_in, $check_out, $harga_per_kamar);
             $stmt_booking->execute();
             $last_id = $mysqli->insert_id;
 
-            // Simpan Fasilitas (Pecah per kamar untuk log)
-            if (!empty($fasilitas_data_global)) {
+           if (!empty($fasilitas_data_global)) {
                 $sql_fas_insert = "INSERT INTO booking_fasilitas (booking_id, fasilitas_id, jumlah, total_harga_fasilitas) VALUES (?, ?, ?, ?)";
                 $stmt_fas_insert = $mysqli->prepare($sql_fas_insert);
                 foreach ($fasilitas_data_global as $fas) {
@@ -103,7 +92,6 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             }
         }
 
-        // B. INSERT PAYMENT (CUKUP SEKALI SAJA DI LUAR LOOP)
         $sql_payment = "INSERT INTO payments (booking_code, jumlah_bayar, status_bayar) VALUES (?, ?, 'Pending')";
         $stmt_payment = $mysqli->prepare($sql_payment);
         $stmt_payment->bind_param("sd", $kode_transaksi, $GRAND_TOTAL);
@@ -112,7 +100,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         $mysqli->commit();
 
         $_SESSION['success_message'] = "Booking Berhasil! Kode Transaksi: " . $kode_transaksi;
-        header('Location: ../booking_history.php'); 
+        header('Location: booking_history.php'); 
         exit;
 
     } catch (Exception $e) {
@@ -125,4 +113,5 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     header('Location: ../index.php');
     exit;
 }
+
 ?>
