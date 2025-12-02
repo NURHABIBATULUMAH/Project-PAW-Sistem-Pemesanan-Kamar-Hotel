@@ -1,10 +1,7 @@
 <?php
-// /actions/action_login.php
-// VERSI KONVERSI KE MySQLi
 
 session_start();
-include '../config/database.php'; // Sekarang $mysqli
-
+include '../config/database.php';
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
     $email = $_POST['email'];
     $password = $_POST['password'];
@@ -20,11 +17,11 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         // 1. Cari user berdasarkan email (Konversi ke MySQLi)
         $sql = "SELECT * FROM users WHERE email = ?";
         $stmt = $mysqli->prepare($sql);
-        $stmt->bind_param("s", $email); // "s" untuk string
+        $stmt->bind_param("s", $email); 
         $stmt->execute();
         
         $result = $stmt->get_result();
-        $user = $result->fetch_assoc(); // Menggantikan fetch() PDO
+        $user = $result->fetch_assoc(); 
 
         // 2. Cek jika user ada DAN password cocok
         if ($user && password_verify($password, $user['password'])) {
@@ -51,7 +48,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             exit;
         }
 
-    } catch (Exception $e) { // Tangkap 'Exception' umum
+    } catch (Exception $e) {
         $_SESSION['error_message'] = "Error saat login: " . $e->getMessage();
         header('Location: ../login.php');
         exit;

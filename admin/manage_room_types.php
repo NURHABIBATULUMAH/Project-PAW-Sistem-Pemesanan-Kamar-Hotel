@@ -1,6 +1,5 @@
 <?php
 include '../includes/admin_header.php'; 
-
 $message = '';
 $message_type = '';
 $edit_type = null;
@@ -44,7 +43,6 @@ try {
                 throw new Exception("Gagal memindahkan file foto.");
             }
         }
-        
         // Query DB (Konversi ke MySQLi)
         if ($id_to_update) {
             // UPDATE
@@ -64,9 +62,7 @@ try {
             $message = "Tipe kamar baru berhasil ditambahkan.";
         }
         $message_type = 'success';
-        
     }
-    
     // LOGIKA PROSES DELETE (Konversi ke MySQLi Transaction) 
     if (isset($_GET['action']) && $_GET['action'] == 'delete' && isset($_GET['id'])) {
         $id_to_delete = $_GET['id'];
@@ -111,7 +107,6 @@ try {
             $message_type = 'error';
         }
     }
-
     // LOGIKA PROSES EDIT (Konversi ke MySQLi) 
     if (isset($_GET['action']) && $_GET['action'] == 'edit' && isset($_GET['id'])) {
         $id_to_edit = $_GET['id'];
