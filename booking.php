@@ -6,7 +6,6 @@ include 'includes/header.php';
 
 require_login();
 
-// 1. CEK KELENGKAPAN DATA DIRI
 $user_id_cek = $_SESSION['user_id'];
 $sql_cek_profile = "SELECT nik, phone, address FROM users WHERE user_id = ?";
 $stmt_cek = $mysqli->prepare($sql_cek_profile);
@@ -21,17 +20,14 @@ if (empty($data_user['nik']) || empty($data_user['phone']) || empty($data_user['
     exit;
 }
 
-// 2. TANGKAP DATA DARI FORM SEBELUMNYA (ROOM DETAIL)
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
     $room_type_id = $_POST['room_type_id'] ?? null;
     $check_in = $_POST['check_in'] ?? null;
     $check_out = $_POST['check_out'] ?? null;
     $jumlah_kamar = (int) ($_POST['jumlah_kamar'] ?? 0);
     
-    // [PENTING] Tangkap ID kamar dari room_detail.php
     $selected_ids_str = $_POST['selected_room_ids'] ?? ''; 
 
-    // Validasi: Jika kosong, kembalikan
     if (empty($selected_ids_str)) {
         echo "<script>alert('Harap pilih kamar terlebih dahulu!'); window.history.back();</script>";
         exit;
@@ -44,9 +40,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     exit;
 }
 
-// 3. AMBIL DATA TYPE KAMAR & HITUNG HARGA
 try {
-    // A. Info Tipe Kamar
     $sql_type = "SELECT nama_tipe, harga_weekdays, harga_weekend FROM room_types WHERE room_type_id = ?";
     $stmt_type = $mysqli->prepare($sql_type);
     $stmt_type->bind_param("i", $room_type_id);
@@ -56,7 +50,6 @@ try {
 
     if (!$room_type) { throw new Exception("Detail kamar tidak ditemukan."); }
 
-    // B. Ambil Nomor Kamar Asli (Untuk Tampilan Konfirmasi)
     $ids_safe = array_map('intval', $selected_room_ids);
     $ids_query = implode(',', $ids_safe);
     
@@ -69,7 +62,6 @@ try {
     }
     $display_nomor_kamar = implode(', ', $list_nomor_kamar);
 
-    // C. Hitung Durasi & Harga
     $start_date = new DateTime($check_in);
     $end_date = new DateTime($check_out);
     $interval = DateInterval::createFromDateString('1 day');
@@ -91,8 +83,7 @@ try {
     $subtotal_weekend = $count_weekend * $room_type['harga_weekend'];
     $harga_satu_kamar_total = $subtotal_weekday + $subtotal_weekend;
     $total_harga_kamar = $harga_satu_kamar_total * $jumlah_kamar;
-
-    // D. Ambil Fasilitas Tambahan
+    
     $sql_fas = "SELECT * FROM fasilitas_tambahan ORDER BY nama_fasilitas ASC";
     $fasilitas_result = $mysqli->query($sql_fas);
     $fasilitas_list = $fasilitas_result->fetch_all(MYSQLI_ASSOC);
