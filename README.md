@@ -2,6 +2,18 @@
 
 Aplikasi berbasis web untuk melakukan pemesanan kamar hotel secara online. Sistem ini dibangun menggunakan **PHP Native**, **MySQL**, dan **HTML/CSS**, serta menyediakan fitur pemesanan, upload bukti pembayaran, manajemen kamar, pengelolaan user, dan dashboard admin.
 
+# Cara Menggunakan Website:
+Link Website Yang Sudah di Hosting: https://hotels.gajahweb.tech/index.php
+
+**Login sebagai admin:**
+**Email : adminfix@gmail.com**
+**Password : adminfix**
+
+**Login sebagai customers:**
+**Email : cust1@gmail.com**
+**Password : cust**
+Note: Bisa melakukan registrasi jika ingin memiliki akun sendiri
+
 ## Teknologi yang Digunakan
 - **PHP Native**
 - **MySQL**
