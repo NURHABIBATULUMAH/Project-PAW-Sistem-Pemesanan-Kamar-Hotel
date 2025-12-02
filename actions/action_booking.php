@@ -7,7 +7,7 @@ include '../core/booking_logic.php';
 
 require_login(); 
 
-if ($_SERVER["REQUEST_METHOD"] = "POST") {
+if ($_SERVER["REQUEST_METHOD"] == "POST") {
 
     $user_id = $_POST['user_id'] ?? null;
     $room_type_id = $_POST['room_type_id'] ?? null;
@@ -100,7 +100,7 @@ if ($_SERVER["REQUEST_METHOD"] = "POST") {
         $mysqli->commit();
 
         $_SESSION['success_message'] = "Booking Berhasil! Kode Transaksi: " . $kode_transaksi;
-        header('Location: booking_history.php'); 
+        header('Location: ../booking_history.php'); 
         exit;
 
     } catch (Exception $e) {
