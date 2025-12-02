@@ -2,7 +2,7 @@
 
 mysqli_report(MYSQLI_REPORT_ERROR | MYSQLI_REPORT_STRICT);
 
-include '../config/database.php'; // Pastikan $mysqli ada di sini
+include '../config/database.php'; 
 
 session_start(); 
 
@@ -12,7 +12,6 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     $email = trim($_POST['email']);
     $password = $_POST['password'];
 
-    // Validasi input
     if (empty($nama) || empty($email) || empty($password)) {
         $_SESSION['error_message'] = "Semua field harus diisi.";
         header('Location: ../register.php'); 
@@ -38,29 +37,23 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             throw new Exception("Gagal mempersiapkan query: " . $mysqli->error);
         }
         
-        // Binding parameter
         $stmt->bind_param("sss", $nama, $email, $hashed_password);
         
-        // Eksekusi
         $stmt->execute();
 
-        // Jika berhasil, redirect ke login
         $_SESSION['success_message'] = "Registrasi berhasil! Silakan login.";
         header('Location: ../login.php');
         exit;
 
     } catch (mysqli_sql_exception $e) {
-        // Menangkap Error spesifik MySQLi
-        if ($e->getCode() == 1062) { // Duplicate entry (Email sudah ada)
+        if ($e->getCode() == 1062) {
             $_SESSION['error_message'] = "Email tersebut sudah terdaftar.";
         } else {
-            // Tampilkan error teknis untuk debugging (bisa dihapus nanti saat production)
             $_SESSION['error_message'] = "Database Error: " . $e->getMessage();
         }
         header('Location: ../register.php');
         exit;
     } catch (Exception $e) {
-        // Menangkap Error umum lainnya
         $_SESSION['error_message'] = "Terjadi kesalahan: " . $e->getMessage();
         header('Location: ../register.php');
         exit;
