@@ -8,7 +8,7 @@
     --link-delete: #d9534f;   
     --link-rating: #f0ad4e;   
     --bg-light: #f4f4f4;
-    --bg-white: #ffffff;
+    --bg-white: #361616;
     --text-dark: #000;
     --text-muted: #555;
     --border-color: #ddd;
@@ -352,7 +352,7 @@ body.admin-page {
     .sidebar-nav ul {
         display: flex;
         flex-direction: row;
-        overflow-x: auto; /* Scroll aktif */
+        overflow-x: auto; 
         white-space: nowrap;
         padding: 10px;
         margin: 0;
@@ -390,7 +390,7 @@ body.admin-page {
 
     .sidebar-footer {
         display: block !important;
-        position: absolute; /* Lepas dari aliran dokumen */
+        position: absolute; 
         top: 12px;
         right: 15px;
         padding: 0;
