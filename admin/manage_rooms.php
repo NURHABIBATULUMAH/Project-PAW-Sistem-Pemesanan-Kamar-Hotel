@@ -11,7 +11,7 @@ $message_type = '';
 $edit_room = null;
 
 try {
-    // LOGIKA PROSES DELETE 
+    // PROSES DELETE 
     if (isset($_GET['action']) && $_GET['action'] == 'delete' && isset($_GET['id'])) {
         $id_to_delete = $_GET['id'];
         
@@ -50,7 +50,7 @@ try {
         }
     }
 
-    // LOGIKA PROSES CREATE & UPDATE
+    // PROSES CREATE & UPDATE
     if ($_SERVER["REQUEST_METHOD"] == "POST") {
         $room_type_id = $_POST['room_type_id'];
         $nomor_kamar = $_POST['nomor_kamar'];
@@ -86,12 +86,11 @@ try {
         $edit_room = $result_edit->fetch_assoc();
     }
 
-    // AMBIL DATA UTAMA
-    // Query 1: Ambil Tipe Kamar (untuk dropdown)
+    // Ambil Tipe Kamar (untuk dropdown)
     $all_types_result = $mysqli->query("SELECT * FROM room_types");
     $all_types = $all_types_result->fetch_all(MYSQLI_ASSOC);
     
-    // Query 2: Ambil Daftar Kamar + Info Penghuni
+    // Ambil Daftar Kamar + Info Penghuni
     $today = date('Y-m-d');
     $sql_rooms = "SELECT rooms.*, room_types.nama_tipe,
                   (
