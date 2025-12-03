@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Waktu pembuatan: 01 Des 2025 pada 13.07
+-- Waktu pembuatan: 03 Des 2025 pada 02.36
 -- Versi server: 10.4.32-MariaDB
 -- Versi PHP: 8.2.12
 
@@ -38,9 +38,16 @@ CREATE TABLE `bookings` (
   `tanggal_check_in` date NOT NULL,
   `tanggal_check_out` date NOT NULL,
   `total_bayar` decimal(10,2) NOT NULL,
-  `status_booking` enum('Pending','Confirmed','Cancelled') NOT NULL DEFAULT 'Pending',
+  `status_booking` enum('Pending','Confirmed','Cancelled','Completed') DEFAULT 'Pending',
   `created_at` timestamp NOT NULL DEFAULT current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+--
+-- Dumping data untuk tabel `bookings`
+--
+
+INSERT INTO `bookings` (`booking_id`, `booking_code`, `user_id`, `room_type_id`, `room_id`, `jumlah_kamar`, `detail_kamar`, `tanggal_check_in`, `tanggal_check_out`, `total_bayar`, `status_booking`, `created_at`) VALUES
+(1, 'TRX-251203397', 10, 2, 3, 1, '201', '2025-12-03', '2025-12-04', 550000.00, 'Completed', '2025-12-03 01:31:40');
 
 -- --------------------------------------------------------
 
@@ -92,12 +99,19 @@ CREATE TABLE `payments` (
   `payment_id` int(11) NOT NULL,
   `booking_id` int(11) DEFAULT NULL,
   `booking_code` varchar(50) DEFAULT NULL,
-  `metode_bayar` enum('BCA','Mandiri','BNI','BRI','OVO','Gopay') DEFAULT NULL,
+  `metode_bayar` enum('BCA','Mandiri','BNI','BRI','OVO','Gopay','QRIS') DEFAULT NULL,
   `jumlah_bayar` decimal(10,2) NOT NULL,
   `status_bayar` enum('Pending','Success','Failed') NOT NULL DEFAULT 'Pending',
   `bukti_bayar` varchar(255) DEFAULT NULL,
   `tanggal_bayar` datetime DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+--
+-- Dumping data untuk tabel `payments`
+--
+
+INSERT INTO `payments` (`payment_id`, `booking_id`, `booking_code`, `metode_bayar`, `jumlah_bayar`, `status_bayar`, `bukti_bayar`, `tanggal_bayar`) VALUES
+(1, NULL, 'TRX-251203397', 'QRIS', 550000.00, 'Success', 'bukti_TRX-251203397_1764725514.png', '2025-12-03 08:31:54');
 
 -- --------------------------------------------------------
 
@@ -287,7 +301,7 @@ ALTER TABLE `users`
 -- AUTO_INCREMENT untuk tabel `bookings`
 --
 ALTER TABLE `bookings`
-  MODIFY `booking_id` int(11) NOT NULL AUTO_INCREMENT;
+  MODIFY `booking_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
 
 --
 -- AUTO_INCREMENT untuk tabel `booking_fasilitas`
@@ -305,7 +319,7 @@ ALTER TABLE `fasilitas_tambahan`
 -- AUTO_INCREMENT untuk tabel `payments`
 --
 ALTER TABLE `payments`
-  MODIFY `payment_id` int(11) NOT NULL AUTO_INCREMENT;
+  MODIFY `payment_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
 
 --
 -- AUTO_INCREMENT untuk tabel `reviews`
