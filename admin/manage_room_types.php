@@ -10,7 +10,7 @@ try {
         mkdir($target_dir, 0755, true);
     }
 
-    // LOGIKA PROSES FORM (CREATE & UPDATE) - Konversi ke MySQLi
+    // PROSES FORM (CREATE & UPDATE) - Konversi ke MySQLi
     if ($_SERVER["REQUEST_METHOD"] == "POST") {
         $nama_tipe = $_POST['nama_tipe'];
         $deskripsi_tipe = $_POST['deskripsi_tipe'];
@@ -20,7 +20,7 @@ try {
         $foto_utama_lama = $_POST['foto_lama'] ?? null;
         $foto_file = $_FILES['foto_utama'] ?? null;
         
-        $foto_nama = $foto_utama_lama; // Default: pakai foto lama
+        $foto_nama = $foto_utama_lama; 
 
         // Proses File Upload (Logika tidak berubah)
         if ($foto_file && $foto_file['error'] == UPLOAD_ERR_OK) {
@@ -63,7 +63,7 @@ try {
         }
         $message_type = 'success';
     }
-    // LOGIKA PROSES DELETE (Konversi ke MySQLi Transaction) 
+    // PROSES DELETE (Konversi ke MySQLi Transaction) 
     if (isset($_GET['action']) && $_GET['action'] == 'delete' && isset($_GET['id'])) {
         $id_to_delete = $_GET['id'];
         
@@ -88,7 +88,7 @@ try {
             $stmt->bind_param("i", $id_to_delete);
             $stmt->execute();
             
-            $mysqli->commit(); // Commit Transaksi (Sintaks MySQLi)
+            $mysqli->commit(); 
             
             // Hapus file fisik (Tidak berubah)
             if ($old_foto && file_exists($target_dir . $old_foto)) {
@@ -97,8 +97,8 @@ try {
             $message = "Tipe kamar berhasil dihapus (dan semua kamar fisiknya).";
             $message_type = 'success';
             
-        } catch (Exception $e) { // Tangkap 'Exception' umum
-            $mysqli->rollback(); // Rollback Transaksi (Sintaks MySQLi)
+        } catch (Exception $e) { 
+            $mysqli->rollback(); 
              if ($e->getCode() == 1451) { // 1451 = Error Foreign Key Constraint
                 $message = "Gagal menghapus! Ada booking aktif yang menggunakan tipe kamar ini.";
             } else {
@@ -107,7 +107,7 @@ try {
             $message_type = 'error';
         }
     }
-    // LOGIKA PROSES EDIT (Konversi ke MySQLi) 
+    // PROSES EDIT (Konversi ke MySQLi) 
     if (isset($_GET['action']) && $_GET['action'] == 'edit' && isset($_GET['id'])) {
         $id_to_edit = $_GET['id'];
         $sql_edit = "SELECT * FROM room_types WHERE room_type_id = ?";
@@ -115,12 +115,12 @@ try {
         $stmt_edit->bind_param("i", $id_to_edit);
         $stmt_edit->execute();
         $result_edit = $stmt_edit->get_result();
-        $edit_type = $result_edit->fetch_assoc(); // Menggantikan fetch() PDO
+        $edit_type = $result_edit->fetch_assoc(); 
     }
     
-    // Ambil data utama (Konversi ke MySQLi)
+    // Ambil data utama
     $all_types_result = $mysqli->query("SELECT * FROM room_types ORDER BY harga_weekdays ASC");
-    $all_types = $all_types_result->fetch_all(MYSQLI_ASSOC); // Menggantikan fetchAll() PDO
+    $all_types = $all_types_result->fetch_all(MYSQLI_ASSOC); 
 
 } catch (Exception $e) {
     $message = "Error saat memproses: " . $e->getMessage();

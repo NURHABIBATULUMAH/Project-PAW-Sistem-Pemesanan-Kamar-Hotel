@@ -7,7 +7,7 @@ $message_type = '';
 $edit_user = null;
 
 try {
-    // === LOGIKA PROSES FORM (UPDATE) - Konversi ke MySQLi ===
+    // PROSES FORM (UPDATE) 
     if ($_SERVER["REQUEST_METHOD"] == "POST") {
         $user_id = $_POST['user_id'];
         $nama = $_POST['nama'];
@@ -16,7 +16,7 @@ try {
         $phone = $_POST['phone'];
         $role = $_POST['role']; 
 
-        // Perintah update data pengguna
+        // update data pengguna
         $sql = "UPDATE Users SET nama=?, username=?, nik=?, phone=?, role=? WHERE user_id=?";
         $stmt = $mysqli->prepare($sql);
         // "sssssi" = string, string, string, string, string, integer
@@ -27,7 +27,7 @@ try {
         $message_type = 'success';
     }
     
-    // === LOGIKA PROSES DELETE - Konversi ke MySQLi ===
+    // PROSES DELETE 
     if (isset($_GET['action']) && $_GET['action'] == 'delete' && isset($_GET['id'])) {
         $id_to_delete = $_GET['id'];
         
@@ -54,7 +54,7 @@ try {
         }
     }
 
-    // === LOGIKA PROSES EDIT (MENGAMBIL DATA UNTUK FORM) - Konversi ke MySQLi ===
+    // PROSES EDIT 
     if (isset($_GET['action']) && $_GET['action'] == 'edit' && isset($_GET['id'])) {
         $id_to_edit = $_GET['id'];
         
@@ -63,14 +63,13 @@ try {
         $stmt_edit->bind_param("i", $id_to_edit);
         $stmt_edit->execute();
         $result_edit = $stmt_edit->get_result();
-        $edit_user = $result_edit->fetch_assoc(); // Menggantikan fetch() PDO
+        $edit_user = $result_edit->fetch_assoc(); 
     }
     
-    // Ambil data utama (Daftar Semua Pengguna) - Konversi ke MySQLi
+    // Ambil data utama 
     $all_users_result = $mysqli->query("SELECT * FROM Users ORDER BY created_at DESC");
-    $all_users = $all_users_result->fetch_all(MYSQLI_ASSOC); // Menggantikan fetchAll() PDO
-
-} catch (Exception $e) { // Tangkap 'Exception' umum
+    $all_users = $all_users_result->fetch_all(MYSQLI_ASSOC); 
+} catch (Exception $e) { 
     $message = "Error saat memproses: " . $e->getMessage();
     $message_type = 'error';
 }

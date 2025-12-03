@@ -1,4 +1,5 @@
 <?php
+date_default_timezone_set('Asia/Jakarta');
 
 define('BASE_URL', 'http://localhost/project-paw-sistem-pemesanan-kamar-hotel/'); 
 
